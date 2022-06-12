@@ -1,5 +1,7 @@
 # CSP Lua Internals
 
+<a href="https://gfycat.com/NimbleCheeryAntbear"><img src="https://thumbs.gfycat.com/NimbleCheeryAntbear-size_restricted.gif"></a>
+
 Some Lua internals for reference.
 
 - `included-cars`: shared car scripts shipped with CSP builds (look for readme for information on how to include those in your car config);
