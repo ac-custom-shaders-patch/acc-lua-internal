@@ -1,0 +1,8 @@
+local _slider = refnumber()
+
+---@class EditorTrafficLightEmissiveConfiguration
+local EditorTrafficLightEmissiveConfiguration = {
+  
+}
+
+return EditorTrafficLightEmissiveConfiguration
