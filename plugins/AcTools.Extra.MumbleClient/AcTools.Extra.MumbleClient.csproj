@@ -1,0 +1,300 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{86A7C14D-0889-435A-893C-288B5A04A3B8}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>AcTools.Extra.MumbleClient</RootNamespace>
+    <AssemblyName>AcTools.Extra.MumbleClient</AssemblyName>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE;_FEAT_COMPILER</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;_FEAT_COMPILER</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\AudioCaptureClient.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\AudioClient.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\AudioClientBufferFlags.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\AudioClientShareMode.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\AudioClientStreamFlags.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\DataFlow.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\DeviceState.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\Interfaces\Blob.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\Interfaces\ClsCtx.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\Interfaces\ErrorCodes.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\Interfaces\IAudioCaptureClient.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\Interfaces\IAudioClient.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\Interfaces\IMMDevice.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\Interfaces\IMMDeviceCollection.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\Interfaces\IMMDeviceEnumerator.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\Interfaces\IPropertyStore.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\Interfaces\MMDeviceEnumeratorComObject.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\Interfaces\StorageAccessMode.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\MMDevice.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\MMDeviceCollection.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\MMDeviceEnumerator.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\PropertyKey.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\PropertyKeys.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\PropertyStore.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\PropertyStoreProperty.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\PropVariant.cs" />
+    <Compile Include="Dependencies\NAudio\CoreAudioApi\Role.cs" />
+    <Compile Include="Dependencies\NAudio\Dmo\AudioMediaSubtypes.cs" />
+    <Compile Include="Dependencies\NAudio\Dmo\IWMResamplerProps.cs" />
+    <Compile Include="Dependencies\NAudio\Dmo\ResamplerMediaObject.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\AudioSubtypes.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\IMFActivate.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\IMFAttributes.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\IMFCollection.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\IMFMediaBuffer.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\IMFMediaEvent.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\IMFMediaType.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\IMFSample.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\IMFTransform.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\MediaEventType.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\MediaFoundationErrors.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\MediaFoundationHelpers.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\MediaFoundationInterop.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\MediaFoundationTransform.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\MFT_INPUT_STREAM_INFO.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\MFT_MESSAGE_TYPE.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\MFT_OUTPUT_DATA_BUFFER.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\MFT_OUTPUT_STREAM_INFO.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\_MFT_INPUT_STATUS_FLAGS.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\_MFT_INPUT_STREAM_INFO_FLAGS.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\_MFT_OUTPUT_DATA_BUFFER_FLAGS.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\_MFT_OUTPUT_STATUS_FLAGS.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\_MFT_OUTPUT_STREAM_INFO_FLAGS.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\_MFT_PROCESS_OUTPUT_FLAGS.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\_MFT_PROCESS_OUTPUT_STATUS.cs" />
+    <Compile Include="Dependencies\NAudio\MediaFoundation\_MFT_SET_TYPE_FLAGS.cs" />
+    <Compile Include="Dependencies\NAudio\Utils\BufferHelpers.cs" />
+    <Compile Include="Dependencies\NAudio\Utils\CircularBuffer.cs" />
+    <Compile Include="Dependencies\NAudio\Utils\FieldDescriptionAttribute.cs" />
+    <Compile Include="Dependencies\NAudio\Utils\MarshalHelpers.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\MmeInterop\MmException.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\MmeInterop\MmResult.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\MmeInterop\WaveCallbackInfo.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\MmeInterop\WaveCallbackStrategy.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\MmeInterop\WaveHeader.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\MmeInterop\WaveHeaderFlags.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\MmeInterop\WaveInCapabilities.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\MmeInterop\WaveInEventArgs.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\MmeInterop\WaveInterop.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\MmeInterop\WaveOutCapabilities.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\MmeInterop\WaveOutSupport.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveExtensionMethods.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveFormats\WaveFormat.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveFormats\WaveFormatEncoding.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveFormats\WaveFormatExtensible.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveFormats\WaveFormatExtraData.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveInputs\CaptureState.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveInputs\IWaveIn.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveInputs\WasapiCapture.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveInputs\WasapiLoopbackCapture.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveInputs\WaveInEvent.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveOutputs\IWavePlayer.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveOutputs\IWaveProvider.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveOutputs\PlaybackState.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveOutputs\StoppedEventArgs.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveOutputs\WaveOut.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveOutputs\WaveOutEvent.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveProviders\MediaFoundationResampler.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveStreams\WaveInBuffer.cs" />
+    <Compile Include="Dependencies\NAudio\Wave\WaveStreams\WaveOutBuffer.cs" />
+    <Compile Include="Dependencies\protobuf-net\BclHelpers.cs" />
+    <Compile Include="Dependencies\protobuf-net\BufferExtension.cs" />
+    <Compile Include="Dependencies\protobuf-net\BufferPool.cs" />
+    <Compile Include="Dependencies\protobuf-net\Compiler\CompilerContext.cs" />
+    <Compile Include="Dependencies\protobuf-net\Compiler\CompilerDelegates.cs" />
+    <Compile Include="Dependencies\protobuf-net\Compiler\Local.cs" />
+    <Compile Include="Dependencies\protobuf-net\DataFormat.cs" />
+    <Compile Include="Dependencies\protobuf-net\DiscriminatedUnion.Serializable.cs" />
+    <Compile Include="Dependencies\protobuf-net\Extensible.cs" />
+    <Compile Include="Dependencies\protobuf-net\ExtensibleUtil.cs" />
+    <Compile Include="Dependencies\protobuf-net\GlobalSuppressions.cs" />
+    <Compile Include="Dependencies\protobuf-net\Helpers.cs" />
+    <Compile Include="Dependencies\protobuf-net\IExtensible.cs" />
+    <Compile Include="Dependencies\protobuf-net\IExtension.cs" />
+    <Compile Include="Dependencies\protobuf-net\ImplicitFields.cs" />
+    <Compile Include="Dependencies\protobuf-net\IProtoInputT.cs" />
+    <Compile Include="Dependencies\protobuf-net\IProtoOutputT.cs" />
+    <Compile Include="Dependencies\protobuf-net\KeyValuePairProxy.cs" />
+    <Compile Include="Dependencies\protobuf-net\Meta\AttributeMap.cs" />
+    <Compile Include="Dependencies\protobuf-net\Meta\BasicList.cs" />
+    <Compile Include="Dependencies\protobuf-net\Meta\CallbackSet.cs" />
+    <Compile Include="Dependencies\protobuf-net\Meta\MetaType.cs" />
+    <Compile Include="Dependencies\protobuf-net\Meta\ProtoSyntax.cs" />
+    <Compile Include="Dependencies\protobuf-net\Meta\RuntimeTypeModel.cs" />
+    <Compile Include="Dependencies\protobuf-net\Meta\SubType.cs" />
+    <Compile Include="Dependencies\protobuf-net\Meta\TypeAddedEventArgs.cs" />
+    <Compile Include="Dependencies\protobuf-net\Meta\TypeFormatEventArgs.cs" />
+    <Compile Include="Dependencies\protobuf-net\Meta\TypeModel.cs" />
+    <Compile Include="Dependencies\protobuf-net\Meta\TypeModel.InputOutput.cs" />
+    <Compile Include="Dependencies\protobuf-net\Meta\ValueMember.cs" />
+    <Compile Include="Dependencies\protobuf-net\NetObjectCache.cs" />
+    <Compile Include="Dependencies\protobuf-net\PrefixStyle.cs" />
+    <Compile Include="Dependencies\protobuf-net\ProtoContractAttribute.cs" />
+    <Compile Include="Dependencies\protobuf-net\ProtoConverterAttribute.cs" />
+    <Compile Include="Dependencies\protobuf-net\ProtoEnumAttribute.cs" />
+    <Compile Include="Dependencies\protobuf-net\ProtoException.cs" />
+    <Compile Include="Dependencies\protobuf-net\ProtoIgnoreAttribute.cs" />
+    <Compile Include="Dependencies\protobuf-net\ProtoMapAttribute.cs" />
+    <Compile Include="Dependencies\protobuf-net\ProtoMemberAttribute.cs" />
+    <Compile Include="Dependencies\protobuf-net\ProtoReader.cs" />
+    <Compile Include="Dependencies\protobuf-net\ProtoWriter.cs" />
+    <Compile Include="Dependencies\protobuf-net\SerializationContext.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\ArrayDecorator.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\BlobSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\BooleanSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\ByteSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\CharSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\CompiledSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\DateTimeSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\DecimalSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\DefaultValueDecorator.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\DoubleSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\EnumSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\FieldDecorator.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\GuidSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\ImmutableCollectionDecorator.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\Int16Serializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\Int32Serializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\Int64Serializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\IProtoSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\IProtoTypeSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\ISerializerProxy.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\ListDecorator.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\MapDecorator.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\MemberSpecifiedDecorator.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\NetObjectSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\NullDecorator.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\ParseableSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\PropertyDecorator.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\ProtoDecoratorBase.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\ReflectedUriDecorator.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\SByteSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\SingleSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\StringSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\SubItemSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\SurrogateSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\SystemTypeSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\TagDecorator.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\TimeSpanSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\TupleSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\TypeSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\UInt16Serializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\UInt32Serializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\UInt64Serializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\Serializers\UriDecorator.cs" />
+    <Compile Include="Dependencies\protobuf-net\ServiceModel\ProtoBehaviorAttribute.cs" />
+    <Compile Include="Dependencies\protobuf-net\ServiceModel\ProtoBehaviorExtensionElement.cs" />
+    <Compile Include="Dependencies\protobuf-net\ServiceModel\ProtoEndpointBehavior.cs" />
+    <Compile Include="Dependencies\protobuf-net\ServiceModel\ProtoOperationBehavior.cs" />
+    <Compile Include="Dependencies\protobuf-net\ServiceModel\XmlProtoSerializer.cs" />
+    <Compile Include="Dependencies\protobuf-net\SubItemToken.cs" />
+    <Compile Include="Dependencies\protobuf-net\WireType.cs" />
+    <Compile Include="Dependencies\Tiny-JSON\DefaultDecoder.cs" />
+    <Compile Include="Dependencies\Tiny-JSON\DefaultEncoder.cs" />
+    <Compile Include="Dependencies\Tiny-JSON\Extensions.cs" />
+    <Compile Include="Dependencies\Tiny-JSON\Json.cs" />
+    <Compile Include="Dependencies\Tiny-JSON\JsonBuilder.cs" />
+    <Compile Include="Dependencies\Tiny-JSON\JsonMapper.cs" />
+    <Compile Include="Dependencies\Tiny-JSON\JsonParser.cs" />
+    <Compile Include="Dependencies\Tiny-JSON\JsonPropertyAttribute.cs" />
+    <Compile Include="Implementation\ExitCode.cs" />
+    <Compile Include="Implementation\External\RNNoise.cs" />
+    <Compile Include="Implementation\External\SpeexPreprocess.cs" />
+    <Compile Include="Implementation\External\SpeexEcho.cs" />
+    <Compile Include="Implementation\Filters\FilterRNNoise.cs" />
+    <Compile Include="Implementation\Filters\FilterSpeexDSP.cs" />
+    <Compile Include="Implementation\MumbleMapped.cs" />
+    <Compile Include="Implementation\Utils\BetterTimer.cs" />
+    <Compile Include="Implementation\Utils\AudioFilterWrapper.cs" />
+    <Compile Include="Implementation\Utils\CommandArgs.cs" />
+    <Compile Include="Implementation\Utils\ConfigVirtualProcessor.cs" />
+    <Compile Include="Implementation\Utils\DevicesHolder.cs" />
+    <Compile Include="Implementation\Utils\LinqExtension.cs" />
+    <Compile Include="Implementation\Utils\SharedSettings.cs" />
+    <Compile Include="Implementation\Utils\CommandProcessor.cs" />
+    <Compile Include="Implementation\Utils\ConcurrentSimpleStack.cs" />
+    <Compile Include="Implementation\Utils\ConfigProcessor.cs" />
+    <Compile Include="Implementation\Utils\GainEstimator.cs" />
+    <Compile Include="Implementation\Utils\MarshalMatters.cs" />
+    <Compile Include="Implementation\Utils\MemoryPool.cs" />
+    <Compile Include="Implementation\Utils\MuVec3.cs" />
+    <Compile Include="Implementation\Utils\UserTransformState.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Scripts\AudioDecodeThread.cs" />
+    <Compile Include="Scripts\AudioEncodingBuffer.cs" />
+    <Compile Include="Scripts\Channel.cs" />
+    <Compile Include="Scripts\CryptState.cs" />
+    <Compile Include="Scripts\Enums\MessageType.cs" />
+    <Compile Include="Scripts\Enums\OpusApplication.cs" />
+    <Compile Include="Scripts\Enums\OpusCtl.cs" />
+    <Compile Include="Scripts\Enums\OpusErrors.cs" />
+    <Compile Include="Scripts\Enums\SpeechTarget.cs" />
+    <Compile Include="Scripts\Enums\UDPType.cs" />
+    <Compile Include="Scripts\ManageAudioSendBuffer.cs" />
+    <Compile Include="Scripts\MicType.cs" />
+    <Compile Include="Scripts\Mumble.cs" />
+    <Compile Include="Scripts\MumbleClient.cs" />
+    <Compile Include="Scripts\MumbleConstants.cs" />
+    <Compile Include="Scripts\MumbleMicrophone.cs" />
+    <Compile Include="Scripts\MumbleTCPConnection.cs" />
+    <Compile Include="Scripts\MumbleUDPConnection.cs" />
+    <Compile Include="Scripts\NativeMethods.cs" />
+    <Compile Include="Scripts\Opus\OpusDecoder.cs" />
+    <Compile Include="Scripts\Opus\OpusEncoder.cs" />
+    <Compile Include="Scripts\UdpPacketReader.cs" />
+    <Compile Include="Scripts\Var64.cs" />
+    <Compile Include="UnityEngine\AudioClip.cs" />
+    <Compile Include="UnityEngine\AudioSettings.cs" />
+    <Compile Include="UnityEngine\AudioSource.cs" />
+    <Compile Include="UnityEngine\AudioSpeakerMode.cs" />
+    <Compile Include="UnityEngine\Debug.cs" />
+    <Compile Include="UnityEngine\Mathf.cs" />
+    <Compile Include="UnityEngine\Microphone.cs" />
+    <Compile Include="UnityEngine\MonoBehaviour.cs" />
+    <Compile Include="UnityEngine\RangeAttribute.cs" />
+    <Compile Include="UnityEngine\RequireComponentAttribute.cs" />
+    <Compile Include="UnityEngine\Time.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+
+</Project>
