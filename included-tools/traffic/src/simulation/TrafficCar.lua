@@ -48,6 +48,7 @@ function TrafficCar.allocate(definition)
 
   local root = TrafficContext.carsRoot:createBoundingSphereNode('trafficCar', 3)
   local modelLod = root:loadKN5LOD(definition.lod, definition.main)
+  if not modelLod then error('Models are missing') end
   local carPaintMeshes = modelLod:findMeshes('shader:ksPerPixelMultiMap_damage_dirt')
   local color = TrafficConfig.debugBehaviour and _colorDebug or definition.color()
   carPaintMeshes:ensureUniqueMaterials()

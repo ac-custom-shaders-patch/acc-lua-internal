@@ -38,6 +38,7 @@ local colorBland = loadColorsList('extension/config/data_oem_colors_vintage.txt'
 --- @field main string
 --- @field lod string
 --- @field collider string
+--- @field maxSpeed number
 --- @field dynamic number
 --- @field color fun(): rgbm
 --- @field lights CarDefinitionLights
@@ -55,6 +56,7 @@ local cars = {
     lod = 'data/bmw_1m_lod.kn5',
     collider = 'data/bmw_1m_collider.kn5',
     dynamic = 0.8,
+    maxSpeed = 110,
     color = colorRandom,
     lights = {
       headlights = { 'front_light_1', 'front_light_2', 'front_light_1_SUB0' },
@@ -87,6 +89,7 @@ local cars = {
     lod = 'data/alfaromeo_giulietta_lod.kn5',
     collider = 'data/alfaromeo_giulietta_collider.kn5',
     dynamic = 0.4,
+    maxSpeed = 40,
     color = colorBland,
     lights = {
       headlights = { 'FRONT_LIGHT1', 'FRONT_LIGHT_LED', --[[ 'polymsh_detached1_SUB4' ]] },

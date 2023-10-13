@@ -12,7 +12,7 @@ function utils.raiseSettingsUpdate(data)
 end
 
 ---@param execCallback fun(cb: function)
----@param completionCallback fun(err: string, data: table)
+---@param completionCallback fun(err: string?, data: table?)?
 function utils.whenAll(execCallback, completionCallback, dbg)
   local waiting, resultErr, result, ready, nextIndex = 0, nil, {}, false, 1
   try(function () 

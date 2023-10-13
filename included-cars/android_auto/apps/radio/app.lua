@@ -39,7 +39,7 @@ local function updateStationsList()
   if not RadioAppData.baseStations then
     RadioAppData.baseStations = table.filter(table.map(io.load(io.relative('stations.txt')):split('\n'), function (line)
       if #line == 0 then return {} end
-      return table.map(string.split(line, '#', 2)[1]:split('='), string.trim)
+      return table.map(string.split(line, '#', 2)[1]:split('='), function (x) return x:trim() end)
     end), function (line) return #line == 2 end)
     RadioAppData.userStations = stringify.tryParse(ac.storage.radioUserStations, nil, {})
   end

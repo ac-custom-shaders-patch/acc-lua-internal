@@ -1017,11 +1017,11 @@ end
 
 local function checkCompatibility()
   if size.y < 320 or size.x < 640 then
-    return string.format('Display is too small: %d×%d\nFor system to function, resolution should be at least 320×640',
+    return string.format('Display is too small: %d×%d\nFor system to function, resolution should be at least 640×320',
       size.y, size.x)
   end
   if size.y > 800 or size.x > 1280 then
-    return string.format('Display is too large: %d×%d\nFor system to function, resolution should not be larger than 800×1280',
+    return string.format('Display is too large: %d×%d\nFor system to function, resolution should not be larger than 1280×800',
       size.y, size.x)
   end
   if size.x < size.y * 4/3 then
@@ -1128,6 +1128,7 @@ end
 -- If screen does not have right dimensions, `update()` would just draw a warning.
 local compatibilityError = checkCompatibility()
 if compatibilityError then
+  ac.warn(compatibilityError)
   function system.update(dt)
     ui.drawRectFilled(0, ui.windowSize(), rgbm.colors.black)
     ui.offsetCursor(20)

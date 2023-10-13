@@ -19,8 +19,8 @@ local vec3GenericFactory = {
 ---@param points T[]
 ---@param previousPoint T?
 ---@param followingPoint T?
----@param genericFactory nil|{empty: fun(), distance: fun(a: T, b: T), add: fun(a: T, b: T, mult: number), step: number}
----@return T[]
+---@param genericFactory nil|{empty: fun(), distance: fun(a: T, b: T): number, add: fun(a: T, b: T, mult: number), step: number}
+---@return T[]?
 local function LineResampler(points, previousPoint, followingPoint, genericFactory)
   if not genericFactory then
     if vec3.isvec3(points[1]) then genericFactory = vec3GenericFactory end

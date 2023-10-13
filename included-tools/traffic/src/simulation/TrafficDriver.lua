@@ -36,6 +36,7 @@ function TrafficDriver.allocate(carFactory, grid, index)
     speedKmh = TrafficConfig.startingSpeed,
     pauseFor = 0,
     speedy = _mrandom(),
+    maxSpeed = math.huge,
     dimensions = { front = 0.5, rear = 4 },
     _distanceToNext = 0,
     _mouseHovered = false,
@@ -134,6 +135,7 @@ function TrafficDriver:update(dt)
     self.car = self.carFactory:get(self)
     if self.car ~= nil then
       self.dimensions = self.car.definition.dimensions
+      self.maxSpeed = self.car.definition.maxSpeed
 
       self.guide:calculateCurrentPosInto(_initPos, false)
       if self.guide:advance(1, 0.1) then -- about 3 cm
@@ -216,7 +218,7 @@ end
 
 function TrafficDriver:updateTargetSpeed()
   local meta = self.guide:getMeta()
-  local targetSpeed = self.pauseFor > 0 and 0 or meta.speedLimit * (0.6 + 0.4 * self.speedy)
+  local targetSpeed = self.pauseFor > 0 and 0 or _mmin(self.maxSpeed, meta.speedLimit * (0.6 + 0.4 * self.speedy))
   local car = self.car
 
   local optimalMargin

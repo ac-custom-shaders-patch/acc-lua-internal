@@ -2,9 +2,7 @@
   Allows to adjust mirrors in VR by simply grabbing them. Activates on in VR Tweaks settings.
 ]]
 
-local sim = ac.getSim()
-
-if not sim.isVRConnected then
+if not Sim.isVRConnected then
   return
 end
 
@@ -14,6 +12,8 @@ end
 
 local vr = ac.getVR()
 local car = ac.getCar(0)
+if not vr or not car then return end
+
 local aabbMin = vec3()
 local aabbMax = vec3()
 
@@ -102,7 +102,7 @@ Register('draw3D', function()
 end)
 
 Register('core', function (dt)
-  if sim.cameraMode ~= ac.CameraMode.Cockpit or sim.focusedCar ~= 0 then
+  if Sim.cameraMode ~= ac.CameraMode.Cockpit or Sim.focusedCar ~= 0 then
     if mirrorHeld[0] or mirrorHeld[1] then
       ac.setVRHandBusy(0, false)
       ac.setVRHandBusy(1, false)

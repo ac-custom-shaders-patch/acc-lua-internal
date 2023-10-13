@@ -243,7 +243,8 @@ function TrafficIntersection:finalizeLinks()
 
   ---@param id integer
   local function findLaneByID(id)
-    return self._linksList:findFirst(function (e) return e.lane.id == id end).lane or error(string.format('Lane with ID=%d is missing', id))
+    local link = self._linksList:findFirst(function (e) return e.lane.id == id end)
+    return link and link.lane or error(string.format('Lane with ID=%d is missing', id))
   end
 
   if self._loadingDef.disallowedTrajectories ~= nil and #self._loadingDef.disallowedTrajectories > 0 then
@@ -399,7 +400,7 @@ end
 
 ---@param laneFrom TrafficLane
 ---@param laneTo TrafficLane
----@param reallyNeeded boolean
+---@param reallyNeeded boolean?
 function TrafficIntersection:areLanesCompatible(laneFrom, laneTo, reallyNeeded)
   local t = self._incompatibleTable[laneFrom]
   -- if self.name == 'I1' and laneFrom.name == 'Lane #6' and laneTo.name ~= 'Lane #8' then

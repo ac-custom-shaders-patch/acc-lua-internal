@@ -183,15 +183,26 @@ ALLOW_NEW_MODE_SCRIPTS=1\
 ALLOW_TOOLS=1'
     end
 
+    if ac.getLastError():match('Models are missing') then
+      errorMsg = 'Can’t run: models are missing. Download models and unpack `data` folder to “extension\\lua\\tools\\csp-traffic-tool”.'
+      solutionData = 'https://files.acstuff.ru/shared/IeBU/data.zip'
+    end
+
     ui.setCursor(vec2(28, 60))
     ui.pushStyleVar(ui.StyleVar.ChildRounding, 8)
     ui.pushStyleColor(ui.StyleColor.ChildBg, rgbm(0.5, 0, 0, 1))
     ui.childWindow('simErrorMsg', vec2(0, solutionData and 148 or 48), false, 0, function ()
       ui.offsetCursor(8)
-      ui.text(errorMsg)
+      ui.textWrapped(errorMsg, ui.availableSpaceX() - 8)
       if solutionData ~= nil then
         ui.offsetCursorX(8)
-        ui.copyable(solutionData)
+        if solutionData:startsWith('http') then
+          if ui.textHyperlink(solutionData) then
+            os.openURL(solutionData)
+          end
+        else
+          ui.copyable(solutionData)
+        end
       end
       ui.offsetCursorX(8)
       if ui.button('Restart') then

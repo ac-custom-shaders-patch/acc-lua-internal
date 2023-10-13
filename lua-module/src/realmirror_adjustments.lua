@@ -11,10 +11,10 @@ local btnNext = ac.ControlButton('__EXT_REALMIRRORS_NEXT')
 local btnPrev = ac.ControlButton('__EXT_REALMIRRORS_PREVIOUS')
 
 local buttons = table.filter({
-  { ac.ControlButton('__EXT_REALMIRRORS_LEFT'), vec3(1, 0, 0) },
-  { ac.ControlButton('__EXT_REALMIRRORS_RIGHT'), vec3(-1, 0, 0) },
-  { ac.ControlButton('__EXT_REALMIRRORS_UP'), vec3(0, 1, 0) },
-  { ac.ControlButton('__EXT_REALMIRRORS_DOWN'), vec3(0, -1, 0) },
+  { ac.ControlButton('__EXT_REALMIRRORS_LEFT'), vec2(1, 0) },
+  { ac.ControlButton('__EXT_REALMIRRORS_RIGHT'), vec2(-1, 0) },
+  { ac.ControlButton('__EXT_REALMIRRORS_UP'), vec2(0, 1) },
+  { ac.ControlButton('__EXT_REALMIRRORS_DOWN'), vec2(0, -1) },
 }, function (item)
   return item[1]:configured()
 end)

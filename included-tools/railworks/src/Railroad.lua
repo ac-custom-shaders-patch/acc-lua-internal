@@ -165,7 +165,7 @@ local function setChunkConnections(chunks)
         if other == chunk then return end
         local o1 = other[1].points[other[2]]
         local o2 = other[1].points[other[2] == 1 and 2 or other[2] - 1]
-        if math.dot(o2 - o1, p2 - p1) < 0 then
+        if (o2 - o1):dot(p2 - p1) < 0 then
           table.insert(chunk[1].connected, {chunk = other[1], chunkIndex = other[2], ownIndex = chunk[2]})
         end
       end)
@@ -221,13 +221,14 @@ end
 
 ---@param chunk RailroadChunk
 ---@param previousChunk RailroadChunk
----@return integer
+---@return integer?
 local function findContinuationIndex(chunk, previousChunk)
   for i = 1, #chunk.connected do
     if chunk.connected[i].chunk == previousChunk then
       return chunk.connected[i].ownIndex
     end
   end
+  return nil
 end
 
 ---@param stations {[1]: StationDescription, [2]: RailroadChunk}[]

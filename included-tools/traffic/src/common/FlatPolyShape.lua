@@ -87,7 +87,7 @@ function FlatPolyShape:collectIntersections(lanePoints, laneLooped, intersection
   local size = #lanePoints
   while i <= size do
     local p1 = lanePoints[i - 1]
-    while not p1:closerToThan(self.aabb.center, 400) do
+    while not p1:closerToThan(self.aabb.center, 400) and i + 40 < size do
       i = i + 40
       if i > size then break end
       p1 = lanePoints[i - 1]
@@ -102,6 +102,10 @@ function FlatPolyShape:collectIntersections(lanePoints, laneLooped, intersection
         i = i + 1
         p1, p2 = p2, lanePoints[i]
         c1, c2 = c2, self:contains(p2)
+
+        if p2 == nil then
+          error('p2=nil! 2')
+        end
       end
 
       local h, side = self:intersect(p1, p2)

@@ -1,3 +1,6 @@
+local Array = require('Array')
+local EditorLane = require('EditorLane')
+
 ---@class EditorTabLanes
 ---@field editor EditorMain
 local EditorTabLanes = class('EditorTabLanes')
@@ -11,7 +14,55 @@ end
 
 local minItemHeight = vec2(10, 98)
 
+---@param self EditorTabLanes
+---@param filename string
+local function loadFromOBJ(self, filename)
+  local vertices = {}
+  local nextName = nil  
+  local lines = self.editor.lanesList
+  lines:clear()
+
+  for _, line in ipairs(io.load(filename, ''):split('\n', nil, true, true)) do
+    local b = line:byte(1)
+    if b == 118 then -- v
+      local x, y, z = line:numbers(3)
+      vertices[#vertices + 1] = vec3(x, z, -y)
+    elseif b == 111 then -- o
+      nextName = line:sub(3):trim()
+    elseif b == 108 then -- l
+      local points = table.map({ line:numbers() }, function (i, _, data) return data[i] end, vertices)
+      if #points > 1 then
+        lines:push(EditorLane{
+          points = points, 
+          name = nextName or error('No next name found')
+        })
+      end
+      nextName = nil
+    end
+  end
+
+  self.editor:onChange()
+end
+
 function EditorTabLanes:doUI()
+  if ui.button('Replace lines with OBJ file', vec2(ui.availableSpaceX(), 0)) then
+    os.openFileDialog({
+      title = 'Open',
+      defaultFolder = ac.getFolder(ac.FolderID.ContentTracks)..'/'..ac.getTrackID(),
+      fileTypes = {
+        {
+          name = 'OBJ Models',
+          mask = '*.obj'
+        }
+      },
+    }, function (err, filename)
+      if not err and filename then
+        loadFromOBJ(self, filename)
+      end
+    end)
+  end
+  ui.offsetCursorY(12)
+
   ui.header('Created lanes')
   ui.childWindow('##lanesList', vec2(0, -50), function ()
     local lanesList = self.editor.lanesList

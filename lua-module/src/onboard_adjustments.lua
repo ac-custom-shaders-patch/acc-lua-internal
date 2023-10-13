@@ -6,6 +6,7 @@
 local cfg = Config:mapSection('ONBOARD_HOTKEYS', {
   MOVE_SPEED = 0.1,
   ROTATE_SPEED = 10,
+  FOV_SPEED = 10,
   EYES_POSITION = vec3(0, 0.13, 0.14)
 })
 
@@ -22,6 +23,8 @@ local buttons = table.filter({
   { ac.ControlButton('__EXT_SEAT_YAWRIGHT'), 3 },
   { ac.ControlButton('__EXT_SEAT_RESET'), 4 },
   { ac.ControlButton('__EXT_SEAT_AUTO'), 5 },
+  { ac.ControlButton('__EXT_SEAT_FOV_INCREASE'), 6 },
+  { ac.ControlButton('__EXT_SEAT_FOV_DECREASE'), 7 },
 }, function (item)
   return item[1]:configured()
 end)
@@ -38,7 +41,6 @@ local function getEyesPos(carIndex)
   return ac.getCar(carIndex).worldToLocal:transformPoint(eyesPos)
 end
 
-local sim = ac.getSim()
 local swappedSeat = {}
 local swappedSeatPrev = {}
 
@@ -50,8 +52,8 @@ ac.onRelease(function ()
 end)
 
 Register('gameplay', function (dt)
-  local carIndex = sim.focusedCar
-  if sim.cameraMode ~= ac.CameraMode.Cockpit or carIndex == -1 then return end
+  local carIndex = Sim.focusedCar
+  if Sim.cameraMode ~= ac.CameraMode.Cockpit or carIndex == -1 then return end
 
   for i = 1, #buttons do
     local b = buttons[i]
@@ -76,6 +78,11 @@ Register('gameplay', function (dt)
         if flipped then
           p.position.x = -p.position.x
         end
+      elseif action == 6 then
+        ac.debug('Sim.firstPersonCameraFOV', Sim.firstPersonCameraFOV)
+        ac.setFirstPersonCameraFOV(math.clamp(Sim.firstPersonCameraFOV + dt * cfg.FOV_SPEED, 10, 120))
+      elseif action == 7 then
+        ac.setFirstPersonCameraFOV(math.clamp(Sim.firstPersonCameraFOV - dt * cfg.FOV_SPEED, 10, 120))
       else
         p.position:addScaled(action, dt * cfg.MOVE_SPEED)
       end

@@ -326,6 +326,13 @@ function touchscreen.inputText(label, str, flags)
   return ret, done
 end
 
+function touchscreen.inputBehaviour()
+  vkActiveText = true
+  local r = charToAdd
+  charToAdd = nil
+  return r
+end
+
 ---Adds touch scrolling to current list. Call it from a scrollable window. Pass `true` for `hidden`
 ---if you want to draw custom style scrollbar later.
 function touchscreen.scrolling(hidden)

@@ -126,11 +126,12 @@ end
 ---@alias StationDescription {index: integer, name: string, position: vec3}
 ---@param s RailroadEditor
 ---@param position vec3
+---@param name string?
 ---@return StationDescription
-local function newStationDescription(s, position)
+local function newStationDescription(s, position, name)
   return {
     index = nextIndex(),
-    name = findNextName('Station', s.data.stations),
+    name = name or findNextName('Station', s.data.stations),
     position = position
   }
 end
@@ -165,14 +166,16 @@ end
 
 ---@alias LineDescription {index: integer, name: string, priority: number, speedMultiplier: number, colliding: boolean, lights: boolean, points: vec3[]}
 ---@param s RailroadEditor
+---@param points vec3[]?
+---@param name string?
 ---@return LineDescription
-local function newLineDescription(s)
+local function newLineDescription(s, points, name)
   return {
     index = nextIndex(),
-    name = findNextName('Line', table.chain(s.data.lines, s.editedLine and #s.editedLine.points > 0 and { s.editedLine } or {})),
+    name = name or findNextName('Line', table.chain(s.data.lines, s.editedLine and #s.editedLine.points > 0 and { s.editedLine } or {})),
     priority = 1,
     speedMultiplier = 1,
-    points = {}
+    points = points or {}
   }
 end
 
@@ -384,8 +387,56 @@ function RailroadEditor:initialize()
 end
 
 ---@param self RailroadEditor
+---@param filename string
+local function loadFromOBJ(self, filename)
+  local vertices = {}
+  local nextName = nil
+  
+  local lines = {}
+  local stations = {}
+
+  for _, line in ipairs(io.load(filename, ''):split('\n', nil, true, true)) do
+    local b = line:byte(1)
+    if b == 118 then -- v
+      local x, y, z = line:numbers(3)
+      vertices[#vertices + 1] = vec3(x, z, -y)
+    elseif b == 111 then -- o
+      nextName = line:sub(3):trim()
+    elseif b == 108 then -- l
+      local points = table.map({ line:numbers() }, function (i, _, data) return data[i] end, vertices)
+      if #points == 2 and points[1]:closerToThan(points[2], 4) then
+        stations[#stations + 1] = newStationDescription(self, points[1], nextName or error('No next name found'))
+      elseif #points > 1 then
+        lines[#lines + 1] = newLineDescription(self, points, nextName or error('No next name found'))
+      end
+      nextName = nil
+    end
+  end
+
+  self.data.lines = lines
+  self.data.stations = stations
+  saveChanges(self)
+end
+
 ---@param dt number
 local function drawUILines(self, dt)
+  if ui.button('Replace lines and stations with OBJ file', vec2(ui.availableSpaceX(), 0)) then
+    os.openFileDialog({
+      title = 'Open',
+      defaultFolder = ac.getFolder(ac.FolderID.ContentTracks)..'/'..ac.getTrackID(),
+      fileTypes = {
+        {
+          name = 'OBJ Models',
+          mask = '*.obj'
+        }
+      },
+    }, function (err, filename)
+      if not err and filename then
+        loadFromOBJ(self, filename)
+      end
+    end)
+  end
+
   local lines = table.chain(self.data.lines, #self.editedLine.points > 1 and { self.editedLine } or {})
   table.sort(lines, function (a, b) return a.index < b.index end)
 

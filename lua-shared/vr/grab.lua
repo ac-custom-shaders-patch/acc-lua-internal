@@ -3,8 +3,8 @@
   animation enabled, for example, to get fingers to wrap around grabbed object, or, if, for example,
   a gun is shooting, to add a bit of kickback for the hand.
 
-  To use, include and then call `vrGrab.fingers()` to override finger angles for the next couple
-  of frames, or `vrGrab.hand()` to override hand position.
+  To use, include with `local vrGrab = require('shared/vr/grab')` and then call `vrGrab.fingers()`
+  to override finger angles for the next couple of frames, or `vrGrab.hand()` to override hand position.
 ]]
 
 ---@type table

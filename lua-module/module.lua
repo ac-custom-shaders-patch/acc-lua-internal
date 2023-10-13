@@ -4,11 +4,25 @@
   to subscribe for different events.
 ]]
 
+Sim = ac.getSim()
+UI = ac.getUI()
+AIRace = not Sim.isOnlineRace and not Sim.isReplayOnlyMode and Sim.carsCount > 1 and not Sim.isShowroomMode
+
 ---@diagnostic disable-next-line: undefined-field
 Config = ac.INIConfig(ac.INIFormat.Extended, _G.__config__ or {}) -- Small Tweaks config is as `__config__` in a compatible form.
 
+ConfigGamepadFX = ac.INIConfig.cspModule(ac.CSPModuleID.GamepadFX)
 ConfigGUI = ac.INIConfig.cspModule(ac.CSPModuleID.GUI)
 ConfigVRTweaks = ac.INIConfig.cspModule(ac.CSPModuleID.VRTweaks)
+
+ac.onCSPConfigChanged(ac.CSPModuleID.GamepadFX, __reloadScript__)
+ac.onCSPConfigChanged(ac.CSPModuleID.GUI, __reloadScript__)
+ac.onCSPConfigChanged(ac.CSPModuleID.VRTweaks, __reloadScript__)
+
+if AIRace then
+  ac.onCSPConfigChanged(ac.CSPModuleID.NewBehaviour, __reloadScript__)
+  ConfigNewBehaviour = ac.INIConfig.cspModule(ac.CSPModuleID.NewBehaviour)
+end
 
 local fns = {
   core = {},
@@ -16,9 +30,10 @@ local fns = {
   simUpdate = {},
   draw3D = {},
   drawUI = {},
+  drawGameUI = {},
 }
 
----@param mode 'core'|'gameplay'|'simUpdate'|'draw3D'|'drawUI'
+---@param mode 'core'|'gameplay'|'simUpdate'|'draw3D'|'drawUI'|'drawGameUI'
 ---@param callback fun(dt: number)
 function Register(mode, callback)
   table.insert(fns[mode], callback)
@@ -62,14 +77,14 @@ Toggle = {
   end
 }
 
+--@includes:start
 io.scanDir(__dirname..'/src', '*.lua', function (fileName)
   require('src/'..fileName:sub(1, #fileName - 4))
 end)
-
-local sim = ac.getSim()
+--@includes:end
 
 function script.update(dt)
-  if not sim.isPaused and not sim.isInMainMenu then
+  if not Sim.isPaused and not Sim.isInMainMenu then
     for i = 1, #fns.gameplay do fns.gameplay[i](dt) end
   end
   for i = 1, #fns.core do fns.core[i](dt) end
@@ -87,32 +102,16 @@ if #fns.draw3D > 0 then
   end
 end
 
-if #fns.drawUI > 0 then
-  function script.drawUI(dt)
-    for i = 1, #fns.drawUI do fns.drawUI[i](dt) end
+function script.drawUI(dt, inGame)
+  if inGame then 
+    for i = 1, #fns.drawGameUI do fns.drawGameUI[i](dt, inGame) end
   end
+  for i = 1, #fns.drawUI do fns.drawUI[i](dt, inGame) end
 end
 
---[[
-local handbrake = ac.AudioEvent('event:/extension_common/turn_signal_ext')
-handbrake.cameraInteriorMultiplier = 1
-handbrake.volume = 10
-
-function UpdateAudio()
-  local car = ac.getCar(0)
-  if car.handbrake > 0 and not handbrake:isPlaying() then
-    handbrake:start()
+ac.onSharedEvent('$SmallTweaks.ReloadScript', function (data, senderName, senderType)
+  if senderType == 'joypad_assist' or senderType == 'joypad_assist_render' then
+    __reloadScript__()
   end
-  handbrake:setPosition(car.position, car.up, car.look, car.velocity)
-  handbrake:setParam('state', car.handbrake)
-end
-]]
+end)
 
--- local cs = ac.getCar(0).currentSector 
--- local cs = ac.getCar(0).currentSplits[0]
--- local cs = ac.getCar(0).lastSplits[0]
--- local cs = ac.getCar(0).bestSplits[0]
--- local cs = ac.getCar(0).bestLapSplits[0]
--- local cs = ac.getSim().lapSplits
-
--- ac.getSession(0).

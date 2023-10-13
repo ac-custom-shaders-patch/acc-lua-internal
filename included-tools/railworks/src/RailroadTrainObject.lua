@@ -37,7 +37,7 @@ end
 
 ---@param trainDescription TrainDescription
 ---@param rootNode ac.SceneReference
----@return RailroadTrainDoor[]
+---@return RailroadTrainDoor[]?
 local function prepareDoors(trainDescription, rootNode)
   local doors = rootNode:findNodes('DOOR_?')
   if #doors > 0 then
@@ -115,7 +115,9 @@ end
 ---@field distanceRear number
 ---@field distanceTotal number
 ---@field smoke RailroadTrainSmoke
----@field doors RailroadTrainDoor[]
+---@field doors RailroadTrainDoor[]?
+---@field bodySize vec3
+---@field bodyOffset vec3
 ---@field posFront vec3
 ---@field posRear vec3
 ---@field dir vec3
@@ -141,7 +143,7 @@ end
 ---@param descriptions TrainCartDescription[]
 ---@param trainDescription TrainDescription
 ---@param randomDevice fun(): number
----@param callback fun(err: string, trainObject: RailroadTrainObject)
+---@param callback fun(err: string?, trainObject: RailroadTrainObject?)
 function RailroadTrainObject.createAsync(descriptions, trainDescription, randomDevice, callback)
   local description = table.random(descriptions, function (item) return item.probability end, nil, randomDevice) ---@type TrainCartDescription
 
@@ -289,8 +291,8 @@ function RailroadTrainObject:initializeAsync(callback)
     self.sideRight = -min.x
 
     min.y = 0
-    self.bodySize = max - min - vec3(0.2, 0, 0.5)
-    self.bodyOffset = (min + max) / 2
+    self.bodySize = max:clone():sub(min):sub(vec3(0.2, 0, 0.5))
+    self.bodyOffset = min:clone():add(max):scale(0.5)
     callback(nil, nil)
   end)
 end

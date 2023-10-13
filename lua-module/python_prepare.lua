@@ -5,8 +5,6 @@
 
 local function proTyresSync(carIndex, proTyresPath)
   if io.dirExists(proTyresPath) then
-    ac.debug('found dir', proTyresPath)
-
     local tyresIni = ac.INIConfig.carData(carIndex, 'tyres.ini')
     if #tyresIni:get('FRONT', 'NAME', '') ~= 0 then
       local srcCarDir = ac.getFolder(ac.FolderID.ContentCars)..'/'..ac.getCarID(carIndex)..'/data'
@@ -26,7 +24,6 @@ local function proTyresSync(carIndex, proTyresPath)
         table.insert(filesToCopy, sr)
       end
 
-      ac.debug('filesToCopy', stringify(filesToCopy))
       if #filesToCopy > 0 then
         for _, name in ipairs(table.distinct(filesToCopy)) do
           if #name > 0 then
