@@ -1,9 +1,10 @@
-local remoteExe = 'https://github.com/yt-dlp/yt-dlp/releases/download/2023.07.06/yt-dlp.exe'
+local remoteExe = 'https://github.com/yt-dlp/yt-dlp/releases/download/2023.10.13/yt-dlp.exe'
 
 ---Finds optimal format from list of formats returned by yt-dlp. Prefers something with both audio and video,
 ---looking for the largest file.
 local function findOptimalQuality(data)
-  local ret = tostring(table.maxEntry(data:split('\n'), function (format)
+  ac.log('Finding optimal quality', data)
+  local ret = tostring((table.maxEntry(data:split('\n'), function (format)
     if not string.match(string.sub(format, 1, 1), '[0-9]') then return -1e9 end
     if string.match(format, 'audio only') then return -1e9 end
     local w = 0
@@ -20,28 +21,33 @@ local function findOptimalQuality(data)
     end
     w = w + v / 1e6
     return w
-  end):sub(1, 3):trim())
-  if tonumber(ret) == nil then
+  end) or ''):sub(1, 3):trim())
+  if ret == '' or tonumber(ret) == nil then
     ac.debug('Failed to find quality', data)
   end
   return ret
 end
 
 ---Gets URL of a video stream from video URL using yt-dlp.
-local function findVideoStreamURL(videoURL, callback, progressCallback)
+local function findVideoStreamURL(videoURL, callback, progressCallback, secondAttempt)
   if progressCallback then progressCallback('Getting list of available formats…') end
   ac.debug('Youtube Stream', 'Listing formats…')
   os.runConsoleProcess({ filename = remoteExe, arguments = { '-F', videoURL }, separateStderr = true }, function (err, data)
     ac.debug('Youtube Stream', string.format('Formats list: error=%s, data=%s', err, data and data.stdout))
     if err then return callback(err) end
+    if data.stdout:trim() == '' and not secondAttempt then
+      findVideoStreamURL(videoURL, callback, progressCallback, true)
+      return
+    end
     local quality = findOptimalQuality(data.stdout)
+    ac.log('Formats', data.stdout, data.stderr)
     if quality == nil then callback('Couldn’t find optimal quality') end
     if progressCallback then progressCallback('Getting a stream URL…') end
     ac.debug('Youtube quality', quality)
     ac.debug('Youtube video URL', videoURL)
     os.runConsoleProcess({ filename = remoteExe, arguments = { '-f', quality, '--get-url', videoURL }, separateStderr = true }, function (err, data) 
       ac.debug('Youtube Stream', string.format('URL: error=%s, data=%s', err, data and data.stdout))
-      callback(err, data.stdout) 
+      callback(err, data and data.stdout) 
     end)
   end)
 end

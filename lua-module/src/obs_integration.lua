@@ -132,8 +132,6 @@ local function defaultCallbackYebis(size, drawCallback)
   end
 end
 
-setTimeout(Register('simUpdate', function () end))
-
 local function defaultCallbackExteriorCamera(size, updateFn, params)
   local shot, lastD
   local function init()
@@ -157,7 +155,7 @@ local function defaultCallbackExteriorCamera(size, updateFn, params)
   end
   return function (d, n)
     if not lastD then
-      Register('simUpdate', function (dt)
+      render.onSceneReady(function ()
         if lastD.needsData > 0 then
           if not shot or bit.band(lastD.flags, 256) ~= 0 and (lastD.width ~= size.x or lastD.height ~= size.y) then
             size:set(lastD.width, lastD.height)
