@@ -26,11 +26,12 @@ return function(state, driftMode, step, dt)
     or math.tan(gamepadAngle * 4) / 4
   local edgeLag = 0.9 * math.saturateN(math.abs(baseSteer) * 4)
   baseSteer = math.applyLag(baseSteer, gammed, edgeLag, dt)
+	local finalSteer = baseSteer * ScriptSettings.SENSITIVITY * 2
 
   ffbSmooth = math.applyLag(ffbSmooth, state.ffb, 0.9, dt)
   local ffbSteer = driftMode
-    and baseSteer + ffbSmooth * -0.12 * math.lerp(1, 0, math.min(1, math.abs(baseSteer) * 3) ^ 3)
-    or baseSteer + ffbSmooth * -0.06
+    and finalSteer + ffbSmooth * -0.12 * math.lerp(1, 0, math.min(1, math.abs(finalSteer) * 3) ^ 3)
+    or finalSteer + ffbSmooth * -0.06
 
   local offsetMult = math.lerpInvSat(state.speedKmh, 5, 10)
   local carDirection = math.normalize(car.velocity)

@@ -4,6 +4,7 @@ local shelfRunning = ac.isLuaAppRunning('AppShelf')
 if not cfg.automaticallyInstallUpdates and not cfg.notifyAboutNewApps and not cfg.notifyAboutUpdates or shelfRunning then
   return
 end
+ac.log('AppShelf: checking app updates')
 utils.loadApps(function (err, data)
   if not data then
     ac.log('AppShelf: failed to load list of apps', err)

@@ -1,6 +1,7 @@
 ScriptSettings = ac.INIConfig.scriptSettings():mapSection('TWEAKS', {
   MODE_SWITCH_BUTTON = ac.GamepadButton.RightThumb,
-  TRIGGERS_FEEDBACK = true
+  TRIGGERS_FEEDBACK = true,
+  SENSITIVITY = 0.5
 })
 
 local wasPressed = false

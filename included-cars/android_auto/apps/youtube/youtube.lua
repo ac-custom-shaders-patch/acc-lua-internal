@@ -29,25 +29,36 @@ local function findOptimalQuality(data)
 end
 
 ---Gets URL of a video stream from video URL using yt-dlp.
-local function findVideoStreamURL(videoURL, callback, progressCallback, secondAttempt)
+local function findVideoStreamURL(videoURL, callback, progressCallback, failCounter)
   if progressCallback then progressCallback('Getting list of available formats…') end
   ac.debug('Youtube Stream', 'Listing formats…')
   os.runConsoleProcess({ filename = remoteExe, arguments = { '-F', videoURL }, separateStderr = true }, function (err, data)
-    ac.debug('Youtube Stream', string.format('Formats list: error=%s, data=%s', err, data and data.stdout))
-    if err then return callback(err) end
-    if data.stdout:trim() == '' and not secondAttempt then
-      findVideoStreamURL(videoURL, callback, progressCallback, true)
+    ac.debug('Youtube Stream 1', string.format('Formats list: error=%s, data=%s, err=%s', err, data and data.stdout, data and data.stderr))
+    if (err or data and data.stdout:trim() == '') and (failCounter or 0) < 3 then
+      ac.warn('Second attempt')
+      findVideoStreamURL(videoURL, callback, progressCallback, (failCounter or 0) + 1)
       return
     end
+    if err then return callback(err) end
     local quality = findOptimalQuality(data.stdout)
+    ac.debug('Quality.source', data.stdout)
+    ac.debug('Quality.value', quality)
     ac.log('Formats', data.stdout, data.stderr)
     if quality == nil then callback('Couldn’t find optimal quality') end
     if progressCallback then progressCallback('Getting a stream URL…') end
     ac.debug('Youtube quality', quality)
     ac.debug('Youtube video URL', videoURL)
     os.runConsoleProcess({ filename = remoteExe, arguments = { '-f', quality, '--get-url', videoURL }, separateStderr = true }, function (err, data) 
-      ac.debug('Youtube Stream', string.format('URL: error=%s, data=%s', err, data and data.stdout))
-      callback(err, data and data.stdout) 
+      ac.debug('Youtube Stream 2', string.format('URL: error=%s, data=%s, err=%s', err, data and data.stdout, data and data.stderr))
+      if data and data.stdout:trim() == '' then
+        ac.warn('Second attempt')
+        os.runConsoleProcess({ filename = remoteExe, arguments = { '-f', quality, '--get-url', videoURL }, separateStderr = true }, function (err, data) 
+          ac.debug('Youtube Stream 3', string.format('URL: error=%s, data=%s, err=%s', err, data and data.stdout, data and data.stderr))
+          callback(err, data and data.stdout) 
+        end)
+      else
+        callback(err, data and data.stdout) 
+      end
     end)
   end)
 end

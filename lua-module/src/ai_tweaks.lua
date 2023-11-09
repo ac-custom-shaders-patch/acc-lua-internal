@@ -27,7 +27,7 @@ local aboutToStart = false
 
 Register('core', function (dt)
   local isRace = Sim.raceSessionType == ac.SessionType.Race
-  local haveTimeBeforeStart = Sim.timeToSessionStart > 0.5e3
+  local haveTimeBeforeStart = Sim.timeToSessionStart > 1e3
 
   if isRace and aboutToStart and not haveTimeBeforeStart then
     aboutToStart = false
@@ -49,6 +49,9 @@ Register('core', function (dt)
       throttleLimited = true
       for i = 0, Sim.carsCount - 1 do
         local noise = randomNoise(i)
+        if Sim.timeToSessionStart < 1.5e3 and ac.getCar(i).turboCount > 0 then
+          noise = 1
+        end
         physics.setAIThrottleLimit(i, noise > 0.6 and 1 or 0)
       end
     end

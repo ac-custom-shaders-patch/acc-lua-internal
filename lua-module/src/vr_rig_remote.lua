@@ -44,6 +44,16 @@ local rigs = {}
 setTimeout(Register('simUpdate', function () end))
 
 local function setExtraData()
+  local debugReceived = {}
+  local debugSent = {}
+
+  setInterval(function ()
+    io.save(ac.getFolder(ac.FolderID.ExtCache)..'/vr_dump.bin', stringify.binary({
+      debugReceived = debugReceived,
+      debugSent = debugSent,
+    }))
+  end, 30)
+
   local ev, evDataFactory = ac.OnlineEvent({
     handL = ac.StructItem.transform(true, true, -1, 1),
     handR = ac.StructItem.transform(true, true, -1, 1),
@@ -58,6 +68,18 @@ local function setExtraData()
       rig = VRRig.Remote(sender)
       rigs[sender.index] = rig
     end
+
+    table.insert(table.getOrCreate(debugReceived, sender.index, function (callbackData)
+      return {}
+    end), stringify.binary({
+      handL = message.handL,
+      handR = message.handR,
+      head = message.head,
+      flags = message.flags,
+      handStateL = message.handStateL,
+      handStateR = message.handStateR,
+    }))
+
     rig:data(message)
   end, '$SmallTweaks.ExtraData', {range = 50})
 
@@ -69,6 +91,16 @@ local function setExtraData()
     setInterval(function ()
       if Sim.cameraMode == ac.CameraMode.Cockpit and Sim.focusedCar == 0 and (vr.headActive or vr.hands[0].active or vr.hands[1].active) then
         encoder:encode(evData)
+
+        table.insert(debugSent, stringify.binary({
+          handL = evData.handL,
+          handR = evData.handR,
+          head = evData.head,
+          flags = evData.flags,
+          handStateL = evData.handStateL,
+          handStateR = evData.handStateR,
+        }))
+
         ev(nil)
       end
     end, 0.1)
@@ -82,7 +114,7 @@ local function setExtraData()
 end
 
 ac.onOnlineWelcome(function (message, config)
-  if config:get('EXTRA_DATA', 'VR', false) then
+  if config:get('EXTRA_DATA', 'VR_DEV', false) then
     setExtraData()
   end
 end)

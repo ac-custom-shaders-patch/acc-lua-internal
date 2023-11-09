@@ -165,7 +165,6 @@ function virtualizing.WrappedList(source, wrapper, render)
 
 		local offset = ui.getScrollY()
     local scrollingNow = ui.mouseDown(ui.MouseButton.Left)
-    ac.debug('scrollingOffset', scrollingOffset)
     if scrollingOffset ~= 0 then
       if scrollingNow then
         offset = offset - scrollingOffset
@@ -233,6 +232,8 @@ function virtualizing.WrappedList(source, wrapper, render)
         end
 			elseif lastDrawn > 0 then
 				break
+      else
+        curPos = curPos + oldHeight
 			end
 		end
     

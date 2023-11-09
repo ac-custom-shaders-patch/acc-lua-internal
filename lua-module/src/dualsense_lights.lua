@@ -91,7 +91,7 @@ local function implementation()
       end
     elseif settings.EXTRA_COLORS and car.gear == -1 then
       color:set(rgbm.colors.white)
-    elseif settings.EXTRA_COLORS and car.engineLifeLeft < 1 or car.hazardLights then
+    elseif settings.EXTRA_COLORS and (car.engineLifeLeft < 1 or car.hazardLights) then
       color:set(car.turningLightsActivePhase and rgbm.colors.orange or rgbm.colors.transparent)
     elseif settings.EXTRA_COLORS and car.fuel < info.fuelWarning then
       color:set(rgbm(1, 0.15, 0, 1))
