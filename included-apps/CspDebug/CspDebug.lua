@@ -224,15 +224,90 @@ local function controlVRAM()
 end
 
 local savedStateFilename
-local savedStates = nil
 local dragAround = false
 local dragAroundFrame = 0
 local dragTooltipFn
 local applyPressure = 0
 local awakeFor = 0
 
+local _savedStates_cache = nil
+
+---@return {name: string?, data: binary}[]
+local function getSavedStates()  
+  if _savedStates_cache == nil then
+    savedStateFilename = ac.getFolder(ac.FolderID.ExtCfgState)..'/car_states/'..ac.getTrackID()..'__'..ac.getCarID(0)..'.bin'
+    if not io.fileExists(savedStateFilename) then
+      io.createDir(ac.getFolder(ac.FolderID.ExtCfgState)..'/car_states')
+      _savedStates_cache = {}
+    else
+      _savedStates_cache = stringify.binary.tryParse(io.load(savedStateFilename), {})
+      if #_savedStates_cache > 0 and type(_savedStates_cache[1]) == 'string' then
+        _savedStates_cache = table.map(_savedStates_cache, function (v, i)
+          return {data = v, name = nil}
+        end)
+      end
+    end
+  end
+  return _savedStates_cache
+end
+
+local btnSaveState = ac.ControlButton('app.CspDebug/Record car state')
+local btnLoadState = ac.ControlButton('app.CspDebug/Load last car state')
+btnSaveState:onPressed(function ()
+  if #getSavedStates() >= 99 then
+    ui.toast(ui.Icons.Warning, 'Too many states saved, use CSP Debug app to remove old ones')
+    return
+  end
+  ac.saveCarStateAsync(function (err, data)
+    if err then
+      ui.toast(ui.Icons.Warning, 'Failed to save car state: '..err)
+      return
+    end
+    local savedStates = getSavedStates()
+    table.insert(savedStates, {name = nil, data = data})
+    ui.toast(ui.Icons.Save, 'Car state saved')
+    io.save(savedStateFilename, stringify.binary(savedStates))
+  end)
+end)
+btnLoadState:onPressed(function ()
+  local savedStates = getSavedStates()
+  if #savedStates > 0 then
+    if not ac.loadCarState(savedStates[#savedStates].data, 30) then
+      ui.toast(ui.Icons.Warning, 'Can’t restore car state')
+    end
+  end
+end)
+
+function script.windowMainSettings()
+  ui.alignTextToFramePadding()
+  ui.text('Reset car:')
+  ui.sameLine(160)
+  ac.ControlButton('__EXT_CMD_RESET'):control(vec2(120, 0))
+
+  ui.alignTextToFramePadding()
+  ui.text('Reset & step back:')
+  ui.sameLine(160)
+  ac.ControlButton('__EXT_CMD_STEP_BACK'):control(vec2(120, 0))
+
+  ui.alignTextToFramePadding()
+  ui.text('Save car state:')
+  ui.sameLine(160)
+  btnSaveState:control(vec2(120, 0))
+
+  ui.alignTextToFramePadding()
+  ui.text('Load last car state:')
+  ui.sameLine(160)
+  btnLoadState:control(vec2(120, 0))
+
+  ui.offsetCursorY(12)
+  ui.pushFont(ui.Font.Small)
+  ui.textWrapped('There bindings are available in offline practice sessions only.', 280)
+  ui.popFont()
+end
+
 local function controlCarUtils()
   local w = ui.availableSpaceX() / 2 - 2
+  local w3 = (ui.availableSpaceX() - 8) / 3
   ui.text('Visual:')
   local car = ac.getCar(sim.focusedCar) or defaultCar
   if ui.button('Hide driver', vec2(w, 0), car.isDriverVisible and 0 or ui.ButtonFlags.Active) then
@@ -249,15 +324,29 @@ local function controlCarUtils()
 
   ui.offsetCursorY(12)
   ui.text('Helpers:')
-  if ui.button('Reset', vec2(w, 0)) then
+
+  if not physics.allowed() then 
+    if ui.button('Reset', vec2(w, 0)) then
+      ac.resetCar()
+    end
+    ui.sameLine(0, 4)
+    if ui.button('Step back', vec2(w, 0)) then
+      ac.takeAStepBack()
+    end
+    return
+  end
+
+  if ui.button('Reset', vec2(w3, 0)) then
     ac.resetCar()
   end
   ui.sameLine(0, 4)
-  if ui.button('Step back', vec2(w, 0)) then
+  if ui.button('Step back', vec2(w3, 0)) then
     ac.takeAStepBack()
   end
-
-  if not physics.allowed() then return end
+  ui.sameLine(0, 4)
+  if ui.button('Repair', vec2(w3, 0)) then
+    physics.resetCarState(0)
+  end
 
   if ui.button('Drag car around', vec2(ui.availableSpaceX(), 0), dragAround and ui.ButtonFlags.Active or 0) then
     dragAround = not dragAround
@@ -295,32 +384,19 @@ local function controlCarUtils()
 
   ui.offsetCursorY(12)
   ui.text('State:')
-  if savedStates == nil then
-    savedStateFilename = ac.getFolder(ac.FolderID.ExtCfgState)..'/car_states/'..ac.getTrackID()..'__'..ac.getCarID(0)..'.bin'
-    if not io.fileExists(savedStateFilename) then
-      io.createDir(ac.getFolder(ac.FolderID.ExtCfgState)..'/car_states')
-      savedStates = {}
-    else
-      savedStates = stringify.binary.tryParse(io.load(savedStateFilename), {})
-      if #savedStates > 0 and type(savedStates[1]) == 'string' then
-        savedStates = table.map(savedStates, function (v, i)
-          return {data = v, name = nil}
-        end)
-      end
-    end
-  end
+  local savedStates = getSavedStates()
 
   local toRemove
   for i = 1, #savedStates do
     local state = savedStates[i]
     ui.pushID(i)
-    if ui.button(state.name or ('State #'..i), vec2(-48, 0)) or i == #savedStates and ui.hotkeyCtrl() and ac.isKeyPressed(ac.KeyIndex.F9) then
+    if ui.button(state.name or ('State #'..i), vec2(-48, 0)) then
       if not ac.loadCarState(state.data, 30) then
         ui.toast(ui.Icons.Warning, 'Can’t restore car state')
       end
     end
     if ui.itemHovered() then
-      ui.setTooltip(i == #savedStates and 'Load car state (Ctrl+F9)' or 'Load car state')
+      ui.setTooltip(i == #savedStates and btnLoadState:boundTo() and 'Load car state (%s)' % btnLoadState:boundTo() or 'Load car state')
     end
     ui.sameLine(0, 4)
     if ui.iconButton(ui.Icons.Edit) then
@@ -348,7 +424,7 @@ local function controlCarUtils()
       end)
     end
   end
-  if ui.button('Save state', vec2(ui.availableSpaceX(), 0)) or not ui.hotkeyCtrl() and ac.isKeyPressed(ac.KeyIndex.F9) then
+  if ui.button('Save state', vec2(ui.availableSpaceX(), 0)) then
     ac.saveCarStateAsync(function (err, data)
       if err then
         ui.toast(ui.Icons.Warning, 'Failed to save car state: '..err)
@@ -360,7 +436,7 @@ local function controlCarUtils()
     end)
   end
   if ui.itemHovered() then
-    ui.setTooltip('Save car state (F9)')
+    ui.setTooltip(btnSaveState:boundTo() and 'Save car state (%s)' % btnSaveState:boundTo() or 'Save car state')
   end
 end
 
@@ -535,6 +611,17 @@ local function drawTyre(tyre, p1, p2)
   ui.drawCircleFilled(vec2.tmp():set((p1.x + p2.x) / 2, (p1.y + p2.y) / 2), 1.5, rgbm(0, 0, 0, 0.1))
   ui.drawCircleFilled(vec2.tmp():set((p1.x + p2.x) / 2 - dx, (p1.y + p2.y) / 2 - dz), 1.5, rgbm.colors.black)
 end
+
+-- local dump = ac.findNodes('carRoot:0'):dumpShaderReplacements()
+-- ac.debug('dump', dump)
+-- ac.findNodes('carRoot:0'):applyShaderReplacements([[
+-- [SHADER_REPLACEMENT_...]
+-- MATERIALS=?
+-- PROP_...=ksEmissive, 10, 0, 0
+-- RESOURCE_0=txDiffuse
+-- RESOURCE_FILE_0='color::#ff0000'
+-- ]], ac.IncludeType.Car)
+-- ac.findNodes('carRoot:0'):applyShaderReplacements(dump)
 
 local function controlPhysicsDebugLines()
   local car = ac.getCar(0)

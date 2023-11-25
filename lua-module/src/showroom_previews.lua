@@ -124,7 +124,7 @@ if preset then
   alignCar = style.AlignCar ~= false
   useHeadlights = style.HeadlightsEnabled ~= false
   useBrakeLights = style.BrakeLightsEnabled == true
-  weather.reflectionBrightness = style.CustomReflectionBrightness or 1
+  weather.reflectionBrightness = (style.CustomReflectionBrightness or 1) * 0.8
   weather.reflectionSaturation = 1
 
   local sceneTweaks = ac.configureSceneTweaks()
@@ -317,7 +317,7 @@ local function shotCar(carIndex, callback)
       end
       callback()
     end)
-  end, 0)
+  end, 0.05)
 end
 
 local function shotAll(nextIndex)

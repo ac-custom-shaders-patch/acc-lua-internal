@@ -11,7 +11,7 @@ Register('core', function ()
   if paused and Sim.isWindowForeground then
     paused = false
     ac.tryToPause(false)
-  elseif not Sim.isWindowForeground and not Sim.isPaused then
+  elseif not Sim.isWindowForeground and not Sim.isPaused and not Sim.isReplayActive and not Sim.isMakingScreenshot then
     ac.tryToPause(true)
     paused = true
   end

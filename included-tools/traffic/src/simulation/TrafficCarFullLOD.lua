@@ -147,7 +147,7 @@ function TrafficCarFullLOD:update(car, physicsHandlesWheels, dlen, dspeed, dt)
   if physicsHandlesWheels then
     stlx:update(0, dt)
     stlz:update(0, dt)
-  elseif dlen > 0.003 then
+  elseif dlen > 0.001 then
     local whls = self._wheels
     local dang = dlen * self._wheelRadiusInv
     local ctrn = car.turn
