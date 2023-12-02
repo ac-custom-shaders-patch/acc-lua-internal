@@ -18,6 +18,7 @@ namespace AcTools.Extra.MumbleClient.Implementation.Utils {
         public static int InputBufferMilliseconds = 100;
         
         public static float AudioBloom = 0.5f;
+        public static float AudioMuteDistance = float.MaxValue;
         public static float AudioMaxDistance = 15f;
         public static float AudioMaxDistVolume = 0.25f;
         public static float AudioMinDistance = 1f;
@@ -49,6 +50,7 @@ namespace AcTools.Extra.MumbleClient.Implementation.Utils {
         
         public static readonly CommandProcessor Processor = new CommandProcessor {
             ["audio.positional.bloom"] = p => AudioBloom = p.Float(),
+            ["audio.positional.muteDistance"] = p => AudioMuteDistance = p.Float(),
             ["audio.positional.maxDistance"] = p => AudioMaxDistance = p.Float(),
             ["audio.positional.maxDistanceVolume"] = p => AudioMaxDistVolume = p.Float(),
             ["audio.positional.minDistance"] = p => AudioMinDistance = p.Float(),

@@ -83,7 +83,15 @@ else
   ac.onOnlineWelcome(function (message, config)
     if mumble then return end
 
-    local cfg = config:mapSection('MUMBLE_INTEGRATION', { HOST = '', PORT = 64738, PASSWORD = '', CHANNEL = 'Root', POSITIONAL_AUDIO = true, POSITIONAL_MAX_DISTANCE = 50 })
+    local cfg = config:mapSection('MUMBLE_INTEGRATION', { 
+      HOST = '',
+      PORT = 64738,
+      PASSWORD = '',
+      CHANNEL = 'Root',
+      POSITIONAL_AUDIO = true,
+      POSITIONAL_MAX_DISTANCE = 50,
+      MUTE_DISTANCE = math.huge
+    })
     if cfg.HOST == '' then
       ac.unloadApp()
       ac.setAppWindowVisible('Mumble', '?', false)
@@ -104,6 +112,7 @@ else
         channel = preprocessValue(cfg.CHANNEL),
         use3D = cfg.POSITIONAL_AUDIO,
         maxDistance = cfg.POSITIONAL_MAX_DISTANCE,
+        muteDistance = cfg.MUTE_DISTANCE,
         context = string.format('%s:%s', ac.getServerIP(), ac.getServerPortTCP())
       })
     end

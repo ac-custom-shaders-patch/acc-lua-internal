@@ -33,7 +33,7 @@ local DEF_EXPECTED_MARK_VALUE = const(12345678)
 
 local SETTINGS_COLUMN_WIDTH = const(90)
 
----@alias MumbleConfig {configPrefix: string?, host: string, port: integer, password: string?, channel: string?, context: string?, use3D: boolean?, maxDistance: number?}
+---@alias MumbleConfig {configPrefix: string?, host: string, port: integer, password: string?, channel: string?, context: string?, use3D: boolean?, maxDistance: number?, muteDistance: number?}
 ---@alias MumbleWrapper {update: fun(dt: number), main: fun(), settings: fun(), fullscreen: fun()}
 
 ffi.cdef(const('\
@@ -181,7 +181,7 @@ local pushToTalkButton = ac.ControlButton('__EXT_PUSHTOTALK')
 return function(mumbleParams)
 
   ---@type MumbleConfig
-  mumbleParams = table.chain({ host = 'localhost', port = 64738, channel = 'Root', use3D = true, maxDistance = 50 }, mumbleParams)
+  mumbleParams = table.chain({ host = 'localhost', port = 64738, channel = 'Root', use3D = true, maxDistance = 50, muteDistance = math.huge }, mumbleParams)
 
   -- Wrapper config
 
@@ -265,7 +265,7 @@ return function(mumbleParams)
         ['system.streamConnectPointsPrefix'] = config.outputFMOD and mmfKey..'.' or '',
         ['system.forceTCP'] = config.systemForceTCP,
         ['system.setQOS'] = config.systemSetQOS,
-        ['data.sendPosition'] = mumbleParams.use3D,
+        ['data.sendPosition'] = mumbleParams.use3D or (mumbleParams.muteDistance or math.huge) < 1e9,
         ['audio.inputBitrate'] = config.inputBitrate,
         ['audio.inputDevice'] = config.inputDevice,
         ['audio.inputDevice.volume'] = config.inputVolume,
@@ -281,6 +281,7 @@ return function(mumbleParams)
         ['user.pluginIdentity'] = mumbleParams.context and ownSessionID,
   
         ['audio.positional.bloom'] = 0,
+        ['audio.positional.muteDistance'] = math.max(3, mumbleParams.muteDistance) or math.huge,
         ['audio.positional.maxDistance'] = math.max(3, mumbleParams.maxDistance),
         ['audio.positional.maxDistanceVolume'] = 0,
         ['audio.positional.minDistance'] = 1,
@@ -396,6 +397,7 @@ return function(mumbleParams)
     self.delayedVolume = delayed(1)
     self.peakVolume = -1
     self.drawnVolume = -1
+    self.closeEnough = true
     self.player = nil ---@type ac.AudioEvent?
     self.driverName = nil ---@type string?
     self.driverConfig = {muted = false, volume = 1}
@@ -516,7 +518,7 @@ return function(mumbleParams)
       if not self.player then
         self.player = self:_createStream()
       end
-      self.player.volume = volumeBoost * config.outputVolume
+      self.player.volume = volumeBoost * config.outputVolume * math.max(0, 1 - self.car.distanceToCamera / mumbleParams.muteDistance)
       if mumbleParams.use3D then
         ac.getDriverHeadTransformTo(headTransform, self.car.index)
         self.player:setPosition(headTransform.position, headTransform.look:normalize(), headTransform.up, self.car.velocity)
@@ -533,6 +535,7 @@ return function(mumbleParams)
     local player = ac.AudioEvent.fromFile({
       stream = { name = mmfKey..'.'..self.sessionID, size = mmf.streamConnectPointSize },
       use3D = mumbleParams.use3D,
+      useOcclusion = true,
       maxDistance = math.max(3, mumbleParams.maxDistance),
       minDistance = 1,
       insideConeAngle = 120,
@@ -619,7 +622,7 @@ return function(mumbleParams)
       end
     elseif not subscriptions then
       subscriptions = {
-        ui.onDriverTooltip(listenerTooltip),
+        ui.onDriverTooltip(false, listenerTooltip),
         ui.onDriverContextMenu(listenerContextMenu),
         ac.onSharedEvent('app.csp.mumble', commandCallback, true)
       }

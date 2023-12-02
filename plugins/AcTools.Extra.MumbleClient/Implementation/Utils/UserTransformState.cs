@@ -6,8 +6,8 @@ namespace AcTools.Extra.MumbleClient.Implementation.Utils {
         public MuVec3 Pos = MuVec3.Invalid;
         public MuVec3 Dir = new MuVec3 { Z = 1f };
         public MuVec3 Up = new MuVec3 { Y = 1f };
-        
-        public static float CalculateGain(float dotFactor, float distance) {
+
+        private static float CalculateGain(float dotFactor, float distance) {
             if (SharedSettings.AudioMaxDistVolume > 0.99f) {
                 return Math.Min(1f, dotFactor + SharedSettings.AudioBloom);
             }
@@ -31,6 +31,7 @@ namespace AcTools.Extra.MumbleClient.Implementation.Utils {
 
         private static void CalculateSideValues(float dotFactor, float distance, ref float gain, ref float offset) {
             var newGain = (1f + 19f * CalculateGain(dotFactor, distance)) / 20f;
+            newGain = Math.Min(newGain, Math.Max(1f - distance / SharedSettings.AudioMuteDistance, 0f));
             gain += (newGain - gain) * 0.1f;
             
             var newOffset = InterauralDelay * dotFactor;
