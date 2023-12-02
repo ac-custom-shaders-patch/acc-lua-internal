@@ -16,7 +16,7 @@ local function updateCover()
     blurredBg:update(function (dt)
       ui.beginBlurring()
       ui.drawImage(p, 0, ui.windowSize())
-      ui.endBlurring(0.05)
+      ui.endBlurring(0.2)
     end)
 
     blurredBg:accessData(function (err, data)
