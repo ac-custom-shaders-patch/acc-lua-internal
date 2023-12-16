@@ -305,6 +305,8 @@ function script.windowMainSettings()
   ui.popFont()
 end
 
+local clickToTeleport
+
 local function controlCarUtils()
   local w = ui.availableSpaceX() / 2 - 2
   local w3 = (ui.availableSpaceX() - 8) / 3
@@ -348,7 +350,7 @@ local function controlCarUtils()
     physics.resetCarState(0)
   end
 
-  if ui.button('Drag car around', vec2(ui.availableSpaceX(), 0), dragAround and ui.ButtonFlags.Active or 0) then
+  if ui.button('Drag car around', vec2(ui.availableSpaceX() / 2 - 4, 0), dragAround and ui.ButtonFlags.Active or 0) then
     dragAround = not dragAround
     ac.disableCarRecovery(dragAround)
     ac.setCurrentCamera(ac.CameraMode.Free)
@@ -359,6 +361,26 @@ local function controlCarUtils()
   if ui.itemHovered() then
     ui.setTooltip('Click right mouse button when dragging to fix a point and add a second one')
   end
+  ui.sameLine(0, 4)
+  if ui.button('Click to teleport', vec2(-0.1, 0), clickToTeleport and ui.ButtonFlags.Active) then
+    if clickToTeleport then
+      clearInterval(clickToTeleport)
+      clickToTeleport = nil
+    else
+      clickToTeleport = setInterval(function ()
+        if ac.getUI().isMouseLeftKeyClicked and not ac.getUI().wantCaptureMouse then
+          local pos = vec3()
+          if render.createMouseRay():physics(pos) ~= -1 then
+            physics.setCarPosition(0, pos, -ac.getSim().cameraLook)
+          end
+          
+          clearInterval(clickToTeleport)
+          clickToTeleport = nil
+        end
+      end)
+    end
+  end
+
   if ui.button('Blow tyres', vec2(w, 0)) then
     physics.blowTyres(0, ac.Wheel.All)
     -- physics.setTyresTemperature(0, ac.Wheel.All, 360)
