@@ -332,10 +332,6 @@ local function shotAll(nextIndex)
   end)
 end
 
-local frameCounter = 0
--- ac.findNodes('carsRoot:yes'):findMeshes('insideInterior:no'):setMaterialProperty('ksEmissive', rgb())
--- ac.findMeshes('?'):setMaterialProperty('ksEmissive', rgb())
-
 local function approximateSteering()
   if steerDeg == 0 then return end
   local curAngle = (math.deg(math.atan2(ac.getCar(0).wheels[0].look.x, ac.getCar(0).wheels[0].look.z))
@@ -347,30 +343,37 @@ local function approximateSteering()
   end
 end
 
+local frameCounter = 0
+local totalTime = 0
+
 -- __preventCarsFromRollingAway__()
 Register('core', function (dt)
   frameCounter = frameCounter + 1
-  if frameCounter < 15 then
+  local prevTotalTime = totalTime
+  if frameCounter > 2 then
+    totalTime = totalTime + math.min(dt, 0.04)
+  end
+  if totalTime < 0.8 then
     approximateSteering()
   end
-  if frameCounter == 30 then
+  if totalTime >= 1 and prevTotalTime < 1 then
     __fixCarsInPlace__()
     rootNodes:setVisible(true)
-  end
-  if frameCounter == 35 then
-    shotAll(0)
-    -- for i = 0, Sim.carsCount - 1 do
-    --   ac.setCarActive(i, i == 0)
-    -- end
-  end
 
+    setTimeout(function ()
+      shotAll(0)
+      -- for i = 0, Sim.carsCount - 1 do
+      --   ac.setCarActive(i, i == 0)
+      -- end
+    end, 0.1)
+  end
   for i = 0, Sim.carsCount - 1 do
     ac.setTargetCar(i)
     -- ac.setHeadlights(useHeadlights)
     -- ac.setBrakingLightsThreshold(useBrakeLights and -1 or 2)
     ac.setHighBeams(false)
     ac.setDaytimeLights(false)
-    if frameCounter == 15 then
+    if totalTime >= 0.5 and prevTotalTime < 0.5 then
       if i > 0 then
         physics.setAITyres(i, ac.getCar(0).compoundIndex)
       end

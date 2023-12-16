@@ -4,7 +4,7 @@ for now).
 To use it:
 
 1. Download missing data and extract data folder to “csp-traffic-tool” (not included by default to keep 
-  CSP lighter): https://files.acstuff.ru/shared/IeBU/data.zip. Data contains car models, colliders and
+  CSP more lightweight): https://files.acstuff.ru/shared/TCKo/data.zip. Data contains car models, colliders and
   font to generate license plates on fly. Models are LOD C and D of a couple of original cars.
 
   If you would want to add new cars, just use those LODs and move all nodes but wheels to a node “BODY”

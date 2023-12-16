@@ -2,6 +2,13 @@ math.randomseed(1)
 jit.flush()
 ac.setLogSilent(true)
 
+if ac.load('newmode.traffic.active') then
+  function script.update(dt)
+    ui.textWrapped('Editing is not available in traffic mode, please restart in practice mode.')
+  end
+  return
+end
+
 local json = require('lib/json')
 local genericUtils = require('src/generic_utils')
 local dataFilename = ac.getTrackDataFilename('traffic.json')
@@ -57,8 +64,6 @@ local function trafficRefresh()
   if simTraffic ~= nil then simTraffic:dispose() end
   simTraffic, simBroken = nil, false
 end
-
-local text = 'hello world'
 
 local function trafficTab()
   ui.header('Simulation speed')
@@ -177,8 +182,6 @@ local function trafficTab()
 WAV_PITCH=extended-0\
 \
 [_SCRIPTING_PHYSICS]\
-ALLOW_TRACK_SCRIPTS=1\
-ALLOW_DISPLAY_SCRIPTS=1\
 ALLOW_NEW_MODE_SCRIPTS=1\
 ALLOW_TOOLS=1'
     end
@@ -232,8 +235,44 @@ editor.tabs:insert(1, { name = simulationTabName, fn = trafficTab })
 -- end
 
 local sim = ac.getSim()
+local requiresDataInstall = #io.scanDir(__dirname..'/data', '*.json') == 0 ---@type boolean|string
+
+if requiresDataInstall then
+  ui.toast(ui.Icons.LoadingSpinner, 'Loading traffic data…###TrafficTool')
+  web.get('https://files.acstuff.ru/shared/TCKo/data.zip', function (err, response)
+    if response and response.body then
+      for _, e in ipairs(io.scanZip(response.body)) do
+        if e:startsWith('data/') and not e:find('/.', nil, true) then
+          local content = io.loadFromZip(response.body, e)
+          if content then
+            local fileDestination = __dirname..'/'..e
+            io.createFileDir(fileDestination)
+            io.save(fileDestination, content)
+          end
+        end
+      end
+      if #io.scanDir(__dirname..'/data', '*.json') == 0 then
+        requiresDataInstall = 'Data is damaged'
+      end
+    else
+      requiresDataInstall = err and tostring(err) or 'Data is missing'
+    end
+    if type(requiresDataInstall) == 'string' then
+      ui.toast(ui.Icons.Warning, 'Failed to install traffic data: '..requiresDataInstall..'###TrafficTool')
+    else
+      ac.broadcastSharedEvent('tools.TrafficTool.rescanCars')
+      setTimeout(function ()
+        requiresDataInstall = false
+      end)
+    end
+  end)
+end
 
 function script.simUpdate(dt)
+  if requiresDataInstall then
+    return
+  end
+
   if true then
     -- require('src/test/distance_between_cars')()
     -- require('src/test/perf_enum')()
@@ -286,6 +325,12 @@ function script.simUpdate(dt)
 end
 
 function script.update(dt)
+  if requiresDataInstall then
+    ui.drawLoadingSpinner(ui.windowSize() / 2 - 20, ui.windowSize() / 2 + 20)
+    return
+  end
+
+
   editor:doUI(dt)
 end
 
@@ -297,6 +342,10 @@ end
 DebugShapes = {}
 
 function script.draw3D()
+  if requiresDataInstall then
+    return
+  end
+
   if script.draw3DOverride then
     script.draw3DOverride()
   end

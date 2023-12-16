@@ -40,8 +40,8 @@ IntersectionLink.StateRed = -2
 function IntersectionLink.allocate(intersection, lane, from, to, fromPos, toPos, fromSide, toSide, fromOrigPos, toOrigPos)
   local fromFits = lane.loop or from > 0.1
   local toFits = lane.loop or to < lane.totalDistance - 0.1
-  if fromPos and math.isNaN(fromPos.x) or toPos and math.isNaN(toPos.x) then 
-    ac.error('NaN in IntersectionLink: '..tostring(lane)..'; '..tostring(intersection))
+  if fromPos and math.isnan(fromPos.x) or toPos and math.isnan(toPos.x) then 
+    ac.error('Not-a-Number in IntersectionLink: '..tostring(lane)..'; '..tostring(intersection))
   end
   return {
     intersection = intersection,

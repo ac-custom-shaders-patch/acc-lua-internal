@@ -44,9 +44,7 @@ function TrafficDriver.allocate(carFactory, grid, index)
     pos = vec3(),
     _awarenessSleep = 0,
     _farSkip = 0,
-    -- _optimalBaseMargin = _mrandom() > 0.9 and 2.5 + _mrandom() or 1.4 + _mrandom() * 0.4,
-    -- _optimalBaseMargin = 1 + _mrandom() * 0.4,
-    _optimalBaseMargin = _mrandom() > 0.9 and 3.5 + _mrandom() or 2 + _mrandom() * 0.4,
+    _optimalBaseMargin = _mrandom() > 0.96 and 4 + 4 * _mrandom() or 2 + _mrandom() ^ 2,
   }
 end
 
@@ -102,11 +100,14 @@ function TrafficDriver:update(dt)
   if farAway then
     if self._farSkip > 0 then
       self._farSkip = self._farSkip - 1
+      self._farSkipDt = self._farSkipDt + dt
       if self.car ~= nil then self.car:extrapolateMovement(speedKmh / 3.6 * dt) end
       return
     else
+      dt = (self._farSkipDt or 0) + dt
       self._farSkip = distanceSquared > 400^2 and 4 or 1
-      dt = dt * (self._farSkip + 1)
+      self._farSkipDt = 0
+      -- dt = dt * (self._farSkip + 1)
     end
   end
   -- ac.perfFrameEnd(2020)

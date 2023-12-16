@@ -13,6 +13,10 @@ local TrafficCarFactory = class('TrafficCarFactory')
 ---@param definitions CarDefinition[]
 ---@return TrafficCarFactory
 function TrafficCarFactory:initialize(definitions)
+  if #definitions == 0 then
+    error('Models are missing')
+  end
+
   self.definitions = definitions
   self.pools = table.map(definitions, function (def) return Pool(function (pool)
     local ret = TrafficCar(def)

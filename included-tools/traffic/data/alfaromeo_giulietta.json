@@ -1,0 +1,31 @@
+{
+  "main": "alfaromeo_giulietta.kn5",
+  "lod": "alfaromeo_giulietta_lod.kn5",
+  "collider": "alfaromeo_giulietta_collider.kn5",
+  "color": "vintage",
+  "maxSpeed": 80,
+  "dynamic": 0.4,
+  "dimensions": {
+    "width": 1.6,
+    "fakeShadowZ": 2.4,
+    "turningOffset": 2.3,
+    "wheelRadius": 0.33,
+    "front": 0.5,
+    "rear": 4,
+    "fakeShadowX": 1.15
+  },
+  "lights": {
+    "headlights": [ "FRONT_LIGHT1", "FRONT_LIGHT_LED" ],
+    "brakes": [ "REAR_LIGHT_2" ],
+    "rearCombined": [ "REAR_LIGHT_1", "REAR_LIGHT_0" ]
+  },
+  "physics": {
+    "width": 1.5,
+    "suspensionForce": 30,
+    "mass": 1500,
+    "suspensionTravel": 0.1,
+    "wheelsGripForce": 10,
+    "suspensionDamping": 10,
+    "length": 3
+  }
+}

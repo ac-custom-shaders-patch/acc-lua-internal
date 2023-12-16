@@ -58,7 +58,7 @@ function EditorMain:initialize(data)
   self.currentlyMovingItem = nil
 
   self.mousePoint = nil
-  self.movableHelper = render.PositioningHelper()
+  self.movableHelper = render.PositioningHelper and render.PositioningHelper()
 
   self.creatingNewLane = nil
   self.selectedLane = nil

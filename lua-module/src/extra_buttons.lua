@@ -3,37 +3,11 @@
 ]]
 
 --[[
-  TODO:
-
-new SystemButtonEntryCombined("__CM_DISCORD_REQUEST_ACCEPT", "Accept join request", fixedValueCallback: x => new[] { Keys.Enter }, delayed: true),
-new SystemButtonEntryCombined("__CM_DISCORD_REQUEST_DENY", "Deny join request", fixedValueCallback: x => new[] { Keys.Back }, delayed: true)
-// new SystemButtonEntryCombined("__CM_EXIT", "Exit the race", customCommand: true, delayed: true),
-new SystemButtonEntryCombined("__CM_NEXT_APPS_DESKTOP", "Next desktop", fixedValueCallback: x => new[] { Keys.Control, Keys.U }),
-new SystemButtonEntryCombined("__CM_ONLINE_POLL_NO", "Poll: vote No", fixedValueCallback: x => new[] { Keys.N }, delayed: true)
-new SystemButtonEntryCombined("__CM_ONLINE_POLL_YES", "Poll: vote Yes", fixedValueCallback: x => new[] { Keys.Y }, delayed: true),
-// new SystemButtonEntryCombined("__CM_PAUSE", "Pause race", fixedValueCallback: x => new[] { Keys.Escape }),
-new SystemButtonEntryCombined("__CM_RESET_CAMERA_VR", "Reset camera in VR", fixedValueCallback: x => new[] { Keys.Control, Keys.Space }),
-// new SystemButtonEntryCombined("__CM_RESET_SESSION", "Restart session", customCommand: true, delayed: true),
-// new SystemButtonEntryCombined("__CM_SETUP_CAR", "Setup in pits", customCommand: true, delayed: true),
-// new SystemButtonEntryCombined("__CM_START_SESSION", "Start race", customCommand: true),
-// new SystemButtonEntryCombined("__CM_START_STOP_SESSION", "Start/setup", customCommand: true,
-// new SystemButtonEntryCombined("__CM_TO_PITS", "Teleport to pits", customCommand: true, delayed: true),
-new SystemButtonEntryCombined("DRIVER_NAMES", "Driver names", defaultKey: Keys.L),
-new SystemButtonEntryCombined("FFWD", "Fast-forward", defaultKey: Keys.F),
-new SystemButtonEntryCombined("HIDE_APPS", "Apps", defaultKey: Keys.H),
-new SystemButtonEntryCombined("HIDE_DAMAGE", "Toggle damage display", defaultKey: Keys.Q),
-new SystemButtonEntryCombined("IDEAL_LINE", "Ideal line", defaultKey: Keys.I),
-new SystemButtonEntryCombined("NEXT_CAR", "Next car", defaultKey: Keys.NumPad3),
-new SystemButtonEntryCombined("NEXT_LAP", "Next lap", defaultKey: Keys.N),
-new SystemButtonEntryCombined("PAUSE_REPLAY", "Pause replay", defaultKey: Keys.Space),
-new SystemButtonEntryCombined("PLAYER_CAR", "Your car", defaultKey: Keys.NumPad2),
-new SystemButtonEntryCombined("PREVIOUS_CAR", "Previous car", defaultKey: Keys.NumPad1),
-new SystemButtonEntryCombined("PREVIOUS_LAP", "Previous lap", defaultKey: Keys.P),
-new SystemButtonEntryCombined("RESET_RACE", "Restart race", delayed: true),
-new SystemButtonEntryCombined("REV", "Rewind", defaultKey: Keys.D),
-new SystemButtonEntryCombined("SHOW_DAMAGE", "Show damage display", defaultKey: Keys.J),
-new SystemButtonEntryCombined("SLOWMO", "Slow motion", defaultKey: Keys.S),
-new SystemButtonEntryCombined("START_REPLAY", "Start replay", defaultKey: Keys.R),
+TODO:
+__CM_ONLINE_POLL_YES
+__CM_ONLINE_POLL_NO
+__CM_DISCORD_REQUEST_ACCEPT
+__CM_DISCORD_REQUEST_DENY
 ]]
 
 local buttons = {} ---@type {button: ac.ControlButton, action: fun(), delayed: {label: string, icon: string, condition: nil|fun(): boolean}?}[]
@@ -51,6 +25,64 @@ local function addButton(button, action, delayed)
     buttons[buttonsCount] = {button = button, action = action, delayed = delayActive and delayed or nil}
   end
 end
+
+for k, v in pairs{
+  HIDE_APPS = 'Hide Show Apps',
+  HIDE_DAMAGE = 'Hide Damage',
+  SHOW_DAMAGE = 'Show Damage',
+  DRIVER_NAMES = 'Driver Names',
+  IDEAL_LINE = 'Ideal Line',
+  START_REPLAY = 'Start Replay',
+  PAUSE_REPLAY = 'Pause Replay',
+  NEXT_LAP = 'Next Lap',
+  PREVIOUS_LAP = 'Previous Lap',
+  NEXT_CAR = 'Next Car',
+  PLAYER_CAR = 'Player Car',
+  PREVIOUS_CAR = 'Previous Car',
+  MOUSE_STEERING = 'Mouse Steering',
+  ACTIVATE_AI = 'Activate AI',
+  RESET_RACE = 'Reset Race',
+  AUTO_SHIFTER = 'Auto Shifter',
+  SLOWMO = 'SLOWMO',
+  FFWD = 'FFWD',
+  REV = 'REV',
+  ABS = 'ABS',
+  TRACTION_CONTROL = 'Traction Control',
+  __CM_ENGINE_BRAKE = 'Engine Brake',
+  __CM_NEXT_APPS_DESKTOP = 'Cycle Virtual Desktop',
+} do
+  ac.ControlButton(k, nil, {remap = true}):onPressed(ac.trySimKeyPressCommand:bind(v))
+end
+
+ac.ControlButton('__CM_RESET_CAMERA_VR', nil, {remap = true}):onPressed(ac.recenterVR)
+ac.ControlButton('__CM_ABS_DECREASE', nil, {remap = true}):onPressed(function ()
+  local c = ac.getCar(0)
+  ac.setABS(c.absMode == 0 and c.absModes or c.absMode - 1)
+end)
+ac.ControlButton('__CM_TRACTION_CONTROL_DECREASE', nil, {remap = true}):onPressed(function ()
+  local c = ac.getCar(0)
+  ac.setABS(c.tractionControlMode == 0 and c.tractionControlModes or c.tractionControlMode - 1)
+end)
+ac.ControlButton('__CM_ENGINE_BRAKE_DECREASE', nil, {remap = true}):onPressed(function ()
+  local c = ac.getCar(0)
+  ac.setABS(c.currentEngineBrakeSetting == 0 and c.engineBrakeSettingsCount or c.currentEngineBrakeSetting - 1)
+end)
+ac.ControlButton('__CM_MGU_2', nil, {system = 'ignore'}):onPressed(function ()
+  local u, c = ac.getUI(), ac.getCar(0)
+  if u.ctrlDown and not u.altDown then
+    ac.setMGUKRecovery(u.shiftDown and (c.mgukRecovery == 0 and 10 or c.mgukRecovery - 1) or (c.mgukRecovery + 1) % 11)
+  end
+end)
+ac.ControlButton('__CM_MGU_1', nil, {system = 'ignore'}):onPressed(function ()
+  local u, c = ac.getUI(), ac.getCar(0)
+  if u.ctrlDown and not u.altDown and c.mgukDeliveryCount > 1 then
+    ac.setMGUKDelivery((u.shiftDown and (c.mgukDelivery <= 0 and c.mgukDeliveryCount - 1 or c.mgukDelivery - 1) or c.mgukDelivery + 1) % c.mgukDeliveryCount)
+  end
+end)
+ac.ControlButton('__CM_MGU_3', nil, {system = true}):onPressed(function ()
+  local c = ac.getCar(0)
+  ac.setMGUHCharging(not c.mguhChargingBatteries)
+end)
 
 local function refreshButtons()
   local controls = ac.INIConfig.controlsConfig()

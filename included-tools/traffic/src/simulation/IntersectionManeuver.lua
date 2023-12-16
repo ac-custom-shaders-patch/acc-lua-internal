@@ -372,7 +372,7 @@ function IntersectionManeuver:calculateCurrentPosInto(v, estimate)
     return self.curveInfo.curve:getInto(v, self._inCurve, estimate)
   else
     if self.guide._curCursor == nil then
-      DebugShapes.unexpected = self.guide.driver:getPosRef():clone()
+      if DebugShapes then DebugShapes.unexpected = self.guide.driver:getPosRef():clone() end
       error('Guide lost its cursor, but intersection meaneuver is yet to start')
     end
   end

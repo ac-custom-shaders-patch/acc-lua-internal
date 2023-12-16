@@ -6,6 +6,7 @@ local function loadColorsList(filename)
   return function () return table.random(colors) end
 end
 
+local TrafficConfig = require('TrafficConfig')
 local colorRandom = loadColorsList('extension/config/data_oem_colors_modern.txt')
 local colorBland = loadColorsList('extension/config/data_oem_colors_vintage.txt')
 
@@ -46,77 +47,53 @@ local colorBland = loadColorsList('extension/config/data_oem_colors_vintage.txt'
 --- @field physics CarDefinitionPhysics
 --- @field cache any
 
-local massMult = 1 -- set to 0.001 to have some fun with it, Driver ́’99 style (https://www.youtube.com/watch?v=DiN6OkklU1s)
+local massMult = TrafficConfig.carnageMode and 0.001 or 1
 
 --- @type CarDefinition[]
-local cars = {
+local cars = {}
 
-  {
-    main = 'data/bmw_1m.kn5',
-    lod = 'data/bmw_1m_lod.kn5',
-    collider = 'data/bmw_1m_collider.kn5',
-    dynamic = 0.8,
-    maxSpeed = 110,
-    color = colorRandom,
-    lights = {
-      headlights = { 'front_light_1', 'front_light_2', 'front_light_1_SUB0' },
-      rear = 'rear_light_1',
-      brakes = { 'brake_light_1', 'brake_light_2' },
-    },
-    dimensions = { 
-      front = 0.5, 
-      rear = 4, 
-      turningOffset = 2.3, 
-      width = 1.6,
-      wheelRadius = 0.33,
-      fakeShadowX = 0.8 + 0.35,
-      fakeShadowZ = 2.25 + 0.15,
-    },
-    physics = {
-      mass = 1500 * massMult,
-      width = 1.5,
-      length = 3,
-      wheelsGripForce = 7,
-      suspensionTravel = 0.05,
-      suspensionForce = 30,
-      suspensionDamping = 15
-    },
-    cache = {}
-  },
+local function rescanCars()
+  local dataDir = 'extension/lua/tools/csp-traffic-tool/data'
+  for _, v in ipairs(io.scanDir(dataDir, '*.json')) do
+    local item = JSON.parse(io.load('%s/%s' % {dataDir, v}))
+    item.main = '%s/%s' % {dataDir, item.main}
+    item.lod = '%s/%s' % {dataDir, item.lod}
+    item.collider = '%s/%s' % {dataDir, item.collider}
+    if io.fileExists(item.main) and io.fileExists(item.lod) and io.fileExists(item.collider) then
+      item.color = item.color == 'modern' and colorRandom or colorBland
+      item.cache = {}
+      item.dynamic = item.dynamic or 0.8
+      item.maxSpeed = item.maxSpeed or 120
+      item.lights = table.assign({
+        headlights = {},
+        rear = {},
+        brakes = {},
+      }, item.lights)
+      item.dimensions = table.assign({
+        front = 0.5, 
+        rear = 4, 
+        turningOffset = 2.3, 
+        width = 1.6,
+        wheelRadius = 0.33,
+        fakeShadowX = 0.8 + 0.35,
+        fakeShadowZ = 2.25 + 0.15,
+      }, item.dimensions)
+      item.physics = table.assign({
+        mass = 1500,
+        width = 1.5,
+        length = 3,
+        wheelsGripForce = 7,
+        suspensionTravel = 0.05,
+        suspensionForce = 30,
+        suspensionDamping = 15
+      }, item.physics)
+      item.physics.mass = item.physics.mass * massMult
+      cars[#cars + 1] = item
+    end
+  end
+end
 
-  {
-    main = 'data/alfaromeo_giulietta.kn5',
-    lod = 'data/alfaromeo_giulietta_lod.kn5',
-    collider = 'data/alfaromeo_giulietta_collider.kn5',
-    dynamic = 0.4,
-    maxSpeed = 40,
-    color = colorBland,
-    lights = {
-      headlights = { 'FRONT_LIGHT1', 'FRONT_LIGHT_LED', --[[ 'polymsh_detached1_SUB4' ]] },
-      rearCombined = { 'REAR_LIGHT_1', 'REAR_LIGHT_0' },
-      brakes = 'REAR_LIGHT_2',
-    },
-    dimensions = {
-      front = 0.5,
-      rear = 4,
-      turningOffset = 2.3,
-      width = 1.6,
-      wheelRadius = 0.33,
-      fakeShadowX = 0.8 + 0.35,
-      fakeShadowZ = 2.25 + 0.15,
-    },
-    physics = {
-      mass = 1500 * massMult,
-      width = 1.5,
-      length = 3,
-      wheelsGripForce = 10,
-      suspensionTravel = 0.1,
-      suspensionForce = 30,
-      suspensionDamping = 10
-    },
-    cache = {}
-  },
-
-}
+rescanCars()
+ac.onSharedEvent('tools.TrafficTool.rescanCars', rescanCars)
 
 return cars

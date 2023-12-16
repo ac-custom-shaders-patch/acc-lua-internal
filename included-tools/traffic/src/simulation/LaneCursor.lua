@@ -44,8 +44,8 @@ function LaneCursor:advance(speedKmh, dt)
   local lane = self.lane
   local point = self.point
   local edgeCubic = self.edgeCubic
-  self.edgePos = self.edgePos + (speedKmh / 3.6) * dt * edgeCubic.edgeLengthInv
-  if self.edgePos > 1 then
+  self.edgePos = self.edgePos + (speedKmh / 3.6) * edgeCubic.edgeLengthInv * dt
+  while self.edgePos > 1 do
     point = point + 1
     if lane.loop then
       if point > lane.size then
@@ -75,7 +75,7 @@ end
 function LaneCursor:syncPos(pos)
   self.point, self.edgePos = self.lane:worldToPointEdgePos(pos)
   if self.point == 0 then
-    DebugShapes.pos = pos
+    if DebugShapes then DebugShapes.pos = pos end
     error('Invalid state: '..tostring(pos) .. ', lane=' .. tostring(self.lane) .. ', car=' .. tostring(self.driver:getCar()))
   end
 end

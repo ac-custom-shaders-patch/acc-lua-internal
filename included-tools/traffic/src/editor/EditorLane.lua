@@ -40,6 +40,10 @@ function EditorLane:initialize(p1, p2)
   end
   self.aabb = AABB()
   self:recalculate()
+
+  if #self.points == 0 then
+    error('wtf')
+  end
 end
 
 function EditorLane:cubicCurve()
@@ -73,7 +77,7 @@ function EditorLane:finalize(editor)
     local baseLane = try(function ()
       return CubicInterpolatingLane(self.points, self.loop)
     end, function (err)
-      ac.error(string.format('Lane is damaged: %s', self.name))
+      ac.error(string.format('Lane is damaged: %s (%s)', self.name, err))
     end)
     if not baseLane then
       self.finalized = {

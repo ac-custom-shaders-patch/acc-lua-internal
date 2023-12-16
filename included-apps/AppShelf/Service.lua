@@ -1,7 +1,9 @@
 local utils = require('utils')
 local cfg = utils.config()
 local shelfRunning = ac.isLuaAppRunning('AppShelf')
-if not cfg.automaticallyInstallUpdates and not cfg.notifyAboutNewApps and not cfg.notifyAboutUpdates or shelfRunning then
+if not cfg.automaticallyInstallUpdates and not cfg.notifyAboutNewApps and not cfg.notifyAboutUpdates 
+  or #cfg.knownApps == ''
+  or shelfRunning then
   return
 end
 ac.log('AppShelf: checking app updates')
@@ -13,6 +15,7 @@ utils.loadApps(function (err, data)
   local counter = 0
   local knownApps = stringify.tryParse(cfg.knownApps, nil, {})
   for _, app in ipairs(data) do
+    ac.log('AppShelf: entry %s, installed: %s, available: %s' % {app.meta.id, app.installed, app.meta.version})
     if app.installed and string.versionCompare(app.meta.version, app.installed) > 0 then
       if cfg.automaticallyInstallUpdates and not ac.isLuaAppRunning(app.meta.id) then
         utils.installApp(app)
@@ -23,6 +26,7 @@ utils.loadApps(function (err, data)
       counter = counter + 1
     end
   end
+  ac.log('AppShelf: notify counter=%s' % counter)
   ac.setWindowNotificationCounter('main', counter)
 end, function (meta)
   local location = ac.getFolder(ac.FolderID.ExtInternal)..'\\lua-apps\\AppShelf'

@@ -45,7 +45,7 @@ function LicensePlateGenerator:generate(meshes)
     --   width = region.size.x
     -- }
 
-    ui.pushDWriteFont('License Plate:./data;Weight=Black')
+    ui.pushDWriteFont('License Plate:extension/lua/tools/csp-traffic-tool/data;Weight=Black')
     ui.setCursor(vec2(offsetX or 0, (offsetY or 0) + 6))
     ui.dwriteTextAligned(text, 86, ui.Alignment.Center, ui.Alignment.Center, region.size, false, color or rgbm(0.1, 0.1, 0.1, 1))
     ui.popDWriteFont()

@@ -22,8 +22,8 @@ local _fnFindPoint = function (v, _, j) return j < v.length end
 ---@param lenTo number
 ---@return BezierCurveNormalized
 function BezierCurveNormalized:initialize(posFrom, dirFrom, posTo, dirTo, lenFrom, lenTo)
-  if math.isNaN(dirFrom.x) then error('NaN in dirFrom') end
-  if math.isNaN(posTo.x) then error('NaN in posTo') end
+  if math.isnan(dirFrom.x) then error('Not-a-Number in dirFrom') end
+  if math.isnan(posTo.x) then error('Not-a-Number in posTo') end
 
   local curve = _curve
   _curve:set(posFrom, dirFrom, posTo, dirTo, lenFrom, lenTo)

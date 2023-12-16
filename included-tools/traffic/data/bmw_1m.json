@@ -1,0 +1,31 @@
+{
+  "main": "bmw_1m.kn5",
+  "lod": "bmw_1m_lod.kn5",
+  "collider": "bmw_1m_collider.kn5",
+  "color": "modern",
+  "maxSpeed": 120,
+  "dynamic": 0.8,
+  "dimensions": {
+    "width": 1.6,
+    "fakeShadowZ": 2.4,
+    "turningOffset": 2.3,
+    "wheelRadius": 0.33,
+    "front": 0.5,
+    "rear": 4,
+    "fakeShadowX": 1.15
+  },
+  "lights": {
+    "headlights": [ "front_light_1", "front_light_2", "front_light_1_SUB0" ],
+    "rear": [ "rear_light_1" ],
+    "brakes": [ "brake_light_1", "brake_light_2" ]
+  },
+  "physics": {
+    "width": 1.5,
+    "suspensionForce": 30,
+    "mass": 1500,
+    "suspensionTravel": 0.05,
+    "wheelsGripForce": 7,
+    "suspensionDamping": 15,
+    "length": 3
+  }
+}

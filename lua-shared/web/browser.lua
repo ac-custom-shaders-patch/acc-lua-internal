@@ -25,9 +25,10 @@ local DEBUG_EXCHANGE = const(false)
 local connect = ac.connect{
   ac.StructItem.key('cefState'),
   tabsCount = ac.StructItem.int32(),
-  cefState = ac.StructItem.byte(), -- 0: ready, 1: installing, 10: failed to install, 11: failed to launch, 12: crashed, 13: exited
+  cefState = ac.StructItem.byte(), -- 0: ready, 1: installing, ≥10: errors
   cefLoop = ac.StructItem.boolean(),
   noProxyServer = ac.StructItem.boolean(),
+  targetFPS = ac.StructItem.int32(),
 }
 
 ---@alias WebBrowser.Features {imageLoading: boolean?, javascript: boolean?, remoteFonts: boolean?, localStorage: boolean?, databases: boolean?, webGL: boolean?, shrinkImagesToFit: boolean?, textAreaResize: boolean?, tabToLinks: boolean?}
@@ -2499,15 +2500,21 @@ function webBrowser.usesCEFLoop()
   return connect.cefLoop
 end
 
+---@return integer
+function webBrowser.targetFPS()
+  return connect.targetFPS
+end
+
 ---@return boolean
 function webBrowser.skipsProxyServer()
   return connect.noProxyServer
 end
 
----@param requestedSettings {useCEFLoop: boolean?, skipProxyServer: boolean?}?
+---@param requestedSettings {useCEFLoop: boolean?, skipProxyServer: boolean?, targetFPS: integer?}?
 function webBrowser.configure(requestedSettings)  
   ac.store('.SmallTweaks.CEF.useCEFLoop', requestedSettings and requestedSettings.useCEFLoop and 1 or 0)
   ac.store('.SmallTweaks.CEF.skipProxyServer', requestedSettings and requestedSettings.skipProxyServer and 1 or 0)
+  ac.store('.SmallTweaks.CEF.targetFPS', requestedSettings and requestedSettings.targetFPS or 0)
 end
 
 ---@type fun(settings: WebBrowser.Settings?): WebBrowser

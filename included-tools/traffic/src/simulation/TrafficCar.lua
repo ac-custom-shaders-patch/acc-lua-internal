@@ -280,7 +280,7 @@ local function _carUpdatePosDir(self, dlen, dt)
   local sdsq = self._distanceSquared
   local sho = self._horizontalOffset
 
-  if sdsq < 200^2 or sfrm % (sdsq < 400^2 % 2 or 4) == 0 then
+  if sdsq < 200^2 or sfrm % (sdsq < 400^2 % 2 or 4) == 0 or dt == 1 then
 
     sho = sho + (self._horizontalOffsetTarget - sho) * dlen * dt
     self._horizontalOffset = sho
@@ -304,16 +304,6 @@ local function _carUpdatePosDir(self, dlen, dt)
     drx, dry, drz = drx * dril, dry * dril, drz * dril
     sdir.x, sdir.y, sdir.z = drx, dry, drz
 
-    if math.isNaN(sdir.x) then 
-      ac.debug('sho', sho)
-      ac.debug('spx', spx)
-      ac.debug('_dsid.x', _dsid.x)
-      ac.debug('_spos.x', _spos.x)
-      ac.debug('srps.x', srps.x)
-      ac.debug('drx*drx + dry*dry + drz*drz', drx*drx + dry*dry + drz*drz)
-      error('WTF') 
-    end
-
     -- self._rearPos:set(self._dir):scale(-self.definition.dimensions.turningOffset):add(self._pos)
     local trof = self.definition.dimensions.turningOffset
     srps.x, srps.y, srps.z = spx - drx * trof, spy - dry * trof, spz - drz * trof
@@ -329,11 +319,6 @@ local function _carUpdatePosDir(self, dlen, dt)
     if not dna and (sdir:dot(self._transform.look) < 0.99998 or sdsq < 40^2) then
       sdir:copyTo(self._transform.look)
       self._transform.side:setCrossNormalized(sdir, _dirUp)
-      if math.isNaN(self._transform.side.x) then
-        ac.debug('sdir', sdir)
-        ac.debug('_dirUp', _dirUp)
-        error('WTF #2')
-      end
       self._transform.up:setCrossNormalized(self._transform.side, sdir)
     end
 

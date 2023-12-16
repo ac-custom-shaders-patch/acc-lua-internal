@@ -38,7 +38,9 @@ function TrafficGuide:detach(reason)
   if reason ~= false and self.driver:getPosRef():closerToThan(ac.getSim().cameraPosition, 200) then
     if not reason then reason = '?' end
     ac.warn('Early detachment nearby: reason='..tostring(reason)..', lane='..(self._curCursor and self._curCursor.lane.name or '?'))
-    DebugShapes['Early detachment ('..(self._curCursor and self._curCursor.lane.name or '?')..')'] = self.driver:getPosRef():clone()
+    if DebugShapes then 
+      DebugShapes['Early detachment ('..(self._curCursor and self._curCursor.lane.name or '?')..')'] = self.driver:getPosRef():clone()
+    end
   end
   if self._curManeuver ~= nil then self._curManeuver:detach() end
   if self._curCursor ~= nil then self._curCursor:detach() end

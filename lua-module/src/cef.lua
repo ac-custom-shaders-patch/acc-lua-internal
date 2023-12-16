@@ -5,6 +5,7 @@ local connect = ac.connect{
   cefState = ac.StructItem.byte(), -- 0: ready, 1: installing, ≥10: errors
   cefLoop = ac.StructItem.boolean(),
   noProxyServer = ac.StructItem.boolean(),
+  targetFPS = ac.StructItem.int32(),
 }
 connect.tabsCount = 0
 connect.cefState = 1
@@ -53,7 +54,8 @@ local function runWebHostProcess(filename, key, closeCallback)
       ACCSPWB_AUTOPLAY = 1,
       ACCSPWB_NO_PROXY_SERVER = connect.noProxyServer and 1 or nil,
       ACCSPWB_CEF_THREADING = connect.cefLoop and 1 or nil,
-      ACCSPWB_TARGET_FPS = 60,
+      ACCSPWB_USE_TIMER = false,
+      ACCSPWB_TARGET_FPS = connect.targetFPS < 1 and 60 or connect.targetFPS,
       ACCSPWB_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.134 Safari/537.36 AssettoCorsa/1.16.3',
       ACCSPWB_DATA_DIRECTORY = ac.getFolder(ac.FolderID.AppDataLocal)..'/ac-cef-layer',
       ACCSPWB_D3D_DEVICE = table.join({__d3dAdapterLuid__()}, ';'),
@@ -235,6 +237,8 @@ local function startWebHost()
   connect.cefState = 1
   connect.cefLoop = ac.load('.SmallTweaks.CEF.useCEFLoop') == 1
   connect.noProxyServer = ac.load('.SmallTweaks.CEF.skipProxyServer') == 1
+  connect.targetFPS = ac.load('.SmallTweaks.CEF.targetFPS') or 60
+  if connect.targetFPS < 1 then connect.targetFPS = 60 end
 
   local key = string.format('AcTools.CSP.CEF.v0.%u.L', math.randomKey())
   local mapped = ac.writeMemoryMappedFile(key, [[int32_t count;uint32_t tabs[255];]])
