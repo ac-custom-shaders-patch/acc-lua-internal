@@ -48,6 +48,7 @@ local colorBland = loadColorsList('extension/config/data_oem_colors_vintage.txt'
 --- @field cache any
 
 local massMult = TrafficConfig.carnageMode and 0.001 or 1
+local speedMultiplier = TrafficConfig.speedMultiplier or 1
 
 --- @type CarDefinition[]
 local cars = {}
@@ -88,6 +89,7 @@ local function rescanCars()
         suspensionDamping = 15
       }, item.physics)
       item.physics.mass = item.physics.mass * massMult
+      item.maxSpeed = item.maxSpeed * speedMultiplier
       cars[#cars + 1] = item
     end
   end

@@ -374,6 +374,9 @@ function IntersectionManeuver:calculateCurrentPosInto(v, estimate)
     if self.guide._curCursor == nil then
       if DebugShapes then DebugShapes.unexpected = self.guide.driver:getPosRef():clone() end
       error('Guide lost its cursor, but intersection meaneuver is yet to start')
+    else
+      -- TODO: Seems like maneuver and lane go out of sync, so this line fixes occasional jumps, but why?
+      self._inCurve = -self.fromDef.lane:distanceToUpcoming(self.guide:getDistance(), self.fromDef.from)
     end
   end
   return nil

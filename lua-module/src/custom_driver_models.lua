@@ -50,7 +50,7 @@ if ownKey ~= '' then
     if url then
       setTimeout(function ()
         ac.replaceDriverModel(0, url)
-      end, 1)
+      end, 0)
       ev({ userID = userID, modelData = data }, true)
     else
       ac.warn('Failed to verify URL')

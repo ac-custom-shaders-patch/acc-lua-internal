@@ -134,7 +134,12 @@ function TrafficCarFullLOD:update(car, physicsHandlesWheels, dlen, dspeed, dt)
     end
   end
 
-  if cfrm % updateRate ~= 0 then return end
+  if cfrm % updateRate ~= 0 then
+    if cdsq < 80^2 and car.headlightsActive then
+      self:setHeadlightsLight(car, true)
+    end
+    return 
+  end
   dt = dt * updateRate
 
   local stlx = self._tiltX
@@ -207,7 +212,7 @@ function TrafficCarFullLOD:setHeadlightsLight(car, active)
       self._lightSource.showInReflections = false
       self._lightSource.longSpecular = 0
     end
-    self._lightSource.position:set(0, 1, 0):add(car:getBodyPos()):addScaled(car._dir, 0.8)
+    self._lightSource.position:set(0, 0.8, 0):add(car:getBodyPos()):addScaled(car._dir, 0.8)
     self._lightSource.direction:set(car._dir)
   elseif self._lightSource ~= nil then
     self._lightSource:dispose()

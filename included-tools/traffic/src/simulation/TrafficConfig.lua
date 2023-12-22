@@ -22,7 +22,8 @@ local TrafficConfig = {
   intersectionYThreshold = 5,
   debugBehaviour = false,
   debugSpawnAround = false,
-  carnageMode = false
+  carnageMode = false,
+  speedMultiplier = 1,
 }
 
 return TrafficConfig

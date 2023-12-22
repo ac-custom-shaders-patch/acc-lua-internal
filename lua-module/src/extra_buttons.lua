@@ -61,11 +61,11 @@ ac.ControlButton('__CM_ABS_DECREASE', nil, {remap = true}):onPressed(function ()
 end)
 ac.ControlButton('__CM_TRACTION_CONTROL_DECREASE', nil, {remap = true}):onPressed(function ()
   local c = ac.getCar(0)
-  ac.setABS(c.tractionControlMode == 0 and c.tractionControlModes or c.tractionControlMode - 1)
+  ac.setTC(c.tractionControlMode == 0 and c.tractionControlModes or c.tractionControlMode - 1)
 end)
 ac.ControlButton('__CM_ENGINE_BRAKE_DECREASE', nil, {remap = true}):onPressed(function ()
   local c = ac.getCar(0)
-  ac.setABS(c.currentEngineBrakeSetting == 0 and c.engineBrakeSettingsCount or c.currentEngineBrakeSetting - 1)
+  ac.setEngineBrakeSetting(c.currentEngineBrakeSetting == 0 and c.engineBrakeSettingsCount or c.currentEngineBrakeSetting - 1)
 end)
 ac.ControlButton('__CM_MGU_2', nil, {system = 'ignore'}):onPressed(function ()
   local u, c = ac.getUI(), ac.getCar(0)
@@ -84,10 +84,20 @@ ac.ControlButton('__CM_MGU_3', nil, {system = true}):onPressed(function ()
   ac.setMGUHCharging(not c.mguhChargingBatteries)
 end)
 
+local function checkIfDelayIsActive(controls)
+  if not controls:get('__EXTRA_CM', 'DELAY_SPECIFIC_SYSTEM_COMMANDS', true) then
+    return false
+  end
+  if ac.INIConfig.videoConfig():get('VIDEO', 'FULLSCREEN', true)
+    and ac.INIConfig.raceConfig():get('HEADER', '__CM_FEATURE_SET', 0) < 1 then
+    return false
+  end
+  return true
+end
+
 local function refreshButtons()
   local controls = ac.INIConfig.controlsConfig()
-  delayActive = controls:get('__EXTRA_CM', 'DELAY_SPECIFIC_SYSTEM_COMMANDS', true) 
-    and not ac.INIConfig.videoConfig():get('VIDEO', 'FULLSCREEN', true)
+  delayActive = checkIfDelayIsActive(controls)
   delayShowProgress = delayActive and controls:get('__EXTRA_CM', 'SHOW_SYSTEM_DELAYS', true)
   if delayShowProgress and displayToggle == nil then
     displayToggle = Toggle.DrawUI()

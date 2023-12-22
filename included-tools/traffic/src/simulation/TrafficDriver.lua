@@ -68,7 +68,7 @@ local function _driverUpdateSpeed(self, dt)
     ta = ta * ta
     lag = 0.94 - 0.1 * ta
   else
-    lag = 0.94 + 0.04 * _mmin(ts * 0.03, 1)
+    lag = 0.92 + 0.04 * _mmin(ts * 0.03, 1)
   end
 
   self.speedKmh = cs + (mts - cs) * _mmin((1 - lag) * dt * 60, 1)
@@ -254,7 +254,8 @@ function TrafficDriver:updateTargetSpeed()
   end
 
   if car ~= nil then
-    targetSpeed = targetSpeed * math.lerp(1, 0.3, math.saturateN(math.abs(self.car.turn)))
+    local turnAmount = math.abs(self.car.turn) * 4
+    targetSpeed = targetSpeed * (1 - turnAmount / (1 + turnAmount))
     car._horizontalOffsetTarget = car._horizontalOffsetBase * meta.spreadMult
   end
 

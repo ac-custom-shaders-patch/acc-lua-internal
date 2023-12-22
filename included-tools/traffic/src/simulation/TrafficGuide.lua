@@ -64,11 +64,6 @@ function TrafficGuide:advance(speedKmh, dt)
   -- First, as we drive towards an intersection, let’s find it if nothing is set yet
   local _curCursor = self._curCursor
   if _curCursor ~= nil then
-
-    -- if _curCursor.lane.name == 'Lane #8' then
-    --   return self:detach() -- TODO
-    -- end
-
     if _curCursor:advance(speedKmh, dt) then
       _curCursor = nil
       self._curCursor = nil
@@ -83,7 +78,6 @@ function TrafficGuide:advance(speedKmh, dt)
 
     -- Calculate distance to it
     local distanceToNextLink = self._meta.distanceToNextLink
-    -- distanceToNextLink = 1e9 -- TODO
 
     -- If nearby, let’s engage with it
     if distanceToNextLink > 0 and distanceToNextLink < 24 and self._curManeuver == nil then

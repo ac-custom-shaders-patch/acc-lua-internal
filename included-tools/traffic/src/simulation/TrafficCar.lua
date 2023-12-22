@@ -82,7 +82,7 @@ function TrafficCar.allocate(definition)
     _lodUpdateDelay = 0,
     _distanceSquared = 0,
     _carPaintMeshes = carPaintMeshes,
-    _horizontalOffsetBase = math.lerp(-0.5, 0.5, math.random()),
+    _horizontalOffsetBase = math.lerp(-0.5, 0.5, math.smoothstep(math.random())),
     _horizontalOffsetTarget = 0
   }
 end
@@ -313,7 +313,7 @@ local function _carUpdatePosDir(self, dlen, dt)
 
     if dlen > 0.01 then
       local turn = 2 * _mucrossY(tmpd, sdir) / dlen
-      self.turn = math.applyLag(self.turn, turn, 0.7, dt)
+      self.turn = (self.turn + turn) / 2
     end
 
     if not dna and (sdir:dot(self._transform.look) < 0.99998 or sdsq < 40^2) then

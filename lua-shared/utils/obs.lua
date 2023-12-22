@@ -171,11 +171,13 @@ function obs.register(group, name, flags, size, content)
 
   local function dispose()
     if canvas == false then return end
-    if canvas then canvas:dispose() end
+    if canvas then
+      canvas:dispose()
+      canvas = false
+    end
     if releaseCallback then releaseCallback() end
     if type(interval) == 'function' then interval() else clearInterval(interval) end
     ac.broadcastSharedEvent('$SmallTweaks.OBSTextures', {group = group, name = name})
-    canvas = false
     finalSize:set(0, 0)
   end
 
