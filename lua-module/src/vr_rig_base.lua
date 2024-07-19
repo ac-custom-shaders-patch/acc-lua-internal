@@ -430,27 +430,32 @@ end
 ---@param out EncodedRig
 function VRRig.Encoder:encode(out)
   local vr = self.vr
-  local flags = vr.headActive and 1 or 0
-  if vr.hands[0].active then flags = flags + 2 end
-  if vr.hands[1].active then flags = flags + 4 end
-  if vr.hands[0].thumbUp then flags = flags + 8 end
-  if vr.hands[1].thumbUp then flags = flags + 16 end
-  if vr.hands[0].indexPointing then flags = flags + 32 end
-  if vr.hands[1].indexPointing then flags = flags + 64 end
+  local flags = (not vr or vr.headActive) and 1 or 0
+  if vr then
+    if vr.hands[0].active then flags = flags + 2 end
+    if vr.hands[1].active then flags = flags + 4 end
+    if vr.hands[0].thumbUp then flags = flags + 8 end
+    if vr.hands[1].thumbUp then flags = flags + 16 end
+    if vr.hands[0].indexPointing then flags = flags + 32 end
+    if vr.hands[1].indexPointing then flags = flags + 64 end
+  end
 
-  -- Encoded rig uses `ac.StructItem.transform()` to store transform compactly. Because of that we can’t write directly to it,
-  -- technically there is nowhere to write like so.
-  vr.hands[0].transform:mulTo(matTmp, self.car.worldToLocal)
-  matTmp.position:sub(self.refs.shoulderPosL)
-  out.handL = matTmp -- instead, convertation happens on assignment
-  vr.hands[1].transform:mulTo(matTmp, self.car.worldToLocal)
-  matTmp.position:sub(self.refs.shoulderPosR)
-  out.handR = matTmp
+  -- Encoded rig uses `ac.StructItem.transform()` to store transform compactly. Because of that we can’t write directly to it.
+  if vr then
+    vr.hands[0].transform:mulTo(matTmp, self.car.worldToLocal)
+    matTmp.position:sub(self.refs.shoulderPosL)
+    out.handL = matTmp -- instead, convertation happens on assignment
+    vr.hands[1].transform:mulTo(matTmp, self.car.worldToLocal)
+    matTmp.position:sub(self.refs.shoulderPosR)
+    out.handR = matTmp
+  end
   self.refs.neckNode:getWorldTransformationRaw():mulTo(matTmp, self.car.worldToLocal)
   matTmp.position:sub(self.refs.headPos)
   out.head = matTmp
 
   out.flags = flags
-  out.handStateL = math.round(vr.hands[0].triggerIndex * 15) * 16 + math.round(vr.hands[0].triggerHand * 15)
-  out.handStateR = math.round(vr.hands[1].triggerIndex * 15) * 16 + math.round(vr.hands[1].triggerHand * 15)
+  if vr then
+    out.handStateL = math.round(vr.hands[0].triggerIndex * 15) * 16 + math.round(vr.hands[0].triggerHand * 15)
+    out.handStateR = math.round(vr.hands[1].triggerIndex * 15) * 16 + math.round(vr.hands[1].triggerHand * 15)
+  end
 end

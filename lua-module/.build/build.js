@@ -1,6 +1,6 @@
 let code = $.readText('module.lua');
 code = code.replace(/--@includes:start[\s\S]+--@includes:end/, () => $.glob('src/*.lua')
-  .map(x => `-- ${x}\n;(function ()\n${$.readText(x)}\nend)()`).join('\n\n'));
+  .map(x => `-- ${x}\nac.log('Module ${x}')\n;(function ()\n${$.readText(x)}\nend)()`).join('\n\n'));
 fs.writeFileSync('module.lua.compiled', code);
 
 const luaJit = $[process.env['LUA_JIT']];

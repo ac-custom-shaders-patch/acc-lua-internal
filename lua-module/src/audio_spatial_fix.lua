@@ -3,7 +3,7 @@
   of stereo effect in VR.
 ]]
 
-local cfgMode = ConfigVRTweaks:get('EXTRA_TWEAKS', 'AUDIO_STEREO_FIX', 0)
+local cfgMode = ConfigVRTweaks and ConfigVRTweaks:get('EXTRA_TWEAKS', 'AUDIO_STEREO_FIX', 0) or 0
 if cfgMode == 0 or cfgMode == 1 and not Sim.isVRConnected then
   return
 end

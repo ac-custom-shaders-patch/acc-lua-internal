@@ -2,7 +2,7 @@
   Pauses AC in background.
 ]]
 
-if not Config:get('MISCELLANEOUS', 'PAUSE_IN_BACKGROUND', false) then
+if not Config:get('MISCELLANEOUS', 'PAUSE_IN_BACKGROUND', false) or Sim.isShowroomMode then
   return
 end
 

@@ -3,6 +3,10 @@
   so that other apps could override the state.
 ]]
 
+if not ConfigGamepadFX then
+  return
+end
+
 local function implementation()
   local settings = ConfigGamepadFX:mapSection('ADVANCED_GAMEPADS', {
     ENABLED = true,
@@ -265,7 +269,7 @@ local function implementation()
   if settings.LOW_BATTERY_WARNING then
     Register('drawGameUI', function (dt)
       if minBatteryLevel < 0.2 then
-        ui.drawCarIcon('res/controller-battery.png', minBatteryLevel < 0.05 and rgbm.colors.red
+        ui.drawCarIcon('?internal\\lua-module\\res\\controller-battery.png', minBatteryLevel < 0.05 and rgbm.colors.red
           or minBatteryLevel < 0.1 and rgbm.colors.orange or rgbm.colors.yellow)
       end
     end)

@@ -6,7 +6,7 @@ if not Sim.isVRConnected then
   return
 end
 
-if not ConfigVRTweaks:get('CONTROLLERS_INTEGRATION', 'INTERACT_WITH_MIRRORS', true) then
+if not ConfigVRTweaks or not ConfigVRTweaks:get('CONTROLLERS_INTEGRATION', 'INTERACT_WITH_MIRRORS', true) then
   return
 end
 

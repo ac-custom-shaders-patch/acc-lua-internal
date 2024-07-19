@@ -10,6 +10,10 @@ __CM_DISCORD_REQUEST_ACCEPT
 __CM_DISCORD_REQUEST_DENY
 ]]
 
+if Config:get('MISCELLANEOUS', 'DISABLE_CM_HOTKEYS', false) then
+  return
+end
+
 local buttons = {} ---@type {button: ac.ControlButton, action: fun(), delayed: {label: string, icon: string, condition: nil|fun(): boolean}?}[]
 local buttonsCount = 0
 local delayActive = false
@@ -24,6 +28,20 @@ local function addButton(button, action, delayed)
     buttonsCount = buttonsCount + 1
     buttons[buttonsCount] = {button = button, action = action, delayed = delayActive and delayed or nil}
   end
+end
+
+local msgs = {}
+local function log(str)
+  if #msgs > 50 then
+    table.remove(msgs, 1)
+  end
+  msgs[#msgs + 1] = str
+end 
+
+if Config:get('MISCELLANEOUS', 'DEBUG_SYSTEM_KEYBINDINGS', false) then
+  ui.onExclusiveHUD(function (mode)
+    ui.text(table.concat(msgs, '\n'))
+  end)
 end
 
 for k, v in pairs{
@@ -51,7 +69,12 @@ for k, v in pairs{
   __CM_ENGINE_BRAKE = 'Engine Brake',
   __CM_NEXT_APPS_DESKTOP = 'Cycle Virtual Desktop',
 } do
-  ac.ControlButton(k, nil, {remap = true}):onPressed(ac.trySimKeyPressCommand:bind(v))
+  local btn = ac.ControlButton(k, nil, {remap = true})
+  log(string.format('System binding: %s, configured: %s, bound to: %s', k, btn:configured(), btn:boundTo()))
+  btn:onPressed((function (id)
+    local s = ac.trySimKeyPressCommand(id)
+    log('System binding pressed: %s, %s' % {id, s})
+  end):bind(v))
 end
 
 ac.ControlButton('__CM_RESET_CAMERA_VR', nil, {remap = true}):onPressed(ac.recenterVR)

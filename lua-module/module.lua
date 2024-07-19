@@ -11,17 +11,22 @@ AIRace = not Sim.isOnlineRace and not Sim.isReplayOnlyMode and Sim.carsCount > 1
 ---@diagnostic disable-next-line: undefined-field
 Config = ac.INIConfig(ac.INIFormat.Extended, _G.__config__ or {}) -- Small Tweaks config is as `__config__` in a compatible form.
 
-ConfigGamepadFX = ac.INIConfig.cspModule(ac.CSPModuleID.GamepadFX)
-ConfigGUI = ac.INIConfig.cspModule(ac.CSPModuleID.GUI)
-ConfigVRTweaks = ac.INIConfig.cspModule(ac.CSPModuleID.VRTweaks)
+ConfigGamepadFX = ac.INIConfig.cspModule(ac.CSPModuleID.GamepadFX) ---@type ac.INIConfig?
+ConfigGUI = ac.INIConfig.cspModule(ac.CSPModuleID.GUI) ---@type ac.INIConfig?
+ConfigVRTweaks = ac.INIConfig.cspModule(ac.CSPModuleID.VRTweaks) ---@type ac.INIConfig?
 
 ac.onCSPConfigChanged(ac.CSPModuleID.GamepadFX, __reloadScript__)
 ac.onCSPConfigChanged(ac.CSPModuleID.GUI, __reloadScript__)
 ac.onCSPConfigChanged(ac.CSPModuleID.VRTweaks, __reloadScript__)
 
+if not ConfigGamepadFX:get('BASIC', 'ENABLED', true) then ConfigGamepadFX = nil end
+if not ConfigGUI:get('BASIC', 'ENABLED', true) then ConfigGUI = nil end
+if not ConfigVRTweaks:get('BASIC', 'ENABLED', true) then ConfigVRTweaks = nil end
+
 if AIRace then
   ac.onCSPConfigChanged(ac.CSPModuleID.NewBehaviour, __reloadScript__)
-  ConfigNewBehaviour = ac.INIConfig.cspModule(ac.CSPModuleID.NewBehaviour)
+  ConfigNewBehaviour = ac.INIConfig.cspModule(ac.CSPModuleID.NewBehaviour) ---@type ac.INIConfig?
+  if not ConfigNewBehaviour:get('BASIC', 'ENABLED', true) then ConfigNewBehaviour = nil end
 end
 
 local fns = {

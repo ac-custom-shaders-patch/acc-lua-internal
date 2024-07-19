@@ -2,7 +2,7 @@
   Draws an icon showing the state of manual pit limiter. Also, warns about disabled forced pit limiter with an icon and a message.
 ]]
 
-if Sim.isShowroomMode then
+if Sim.isShowroomMode or not ConfigGUI then
   return
 end
 

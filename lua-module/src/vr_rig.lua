@@ -6,7 +6,7 @@
   fingers would wrap around grapped objects properly.
 ]]
 
-if not ConfigVRTweaks:get('CONTROLLERS_INTEGRATION', 'CONTROLLERS_RIG', false) then
+if not ConfigVRTweaks or not ConfigVRTweaks:get('CONTROLLERS_INTEGRATION', 'CONTROLLERS_RIG', false) then
   return
 end
 

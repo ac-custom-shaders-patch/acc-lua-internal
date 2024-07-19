@@ -5,6 +5,9 @@ local connect = ac.connect{
   cefState = ac.StructItem.byte(), -- 0: ready, 1: installing, ≥10: errors
   cefLoop = ac.StructItem.boolean(),
   noProxyServer = ac.StructItem.boolean(),
+  useTimer = ac.StructItem.boolean(),
+  setGPUDevicePriority = ac.StructItem.int8(),
+  setGPUProcessPriority = ac.StructItem.int8(),
   targetFPS = ac.StructItem.int32(),
 }
 connect.tabsCount = 0
@@ -25,13 +28,16 @@ local reinstalledOnce = false
 local function runWebHostProcess(filename, key, closeCallback)
   ac.store('.SmallTweaks.CEFLaunchedOnce', 1)
   ac.log('CEF loop: '..tostring(connect.cefLoop and 1 or 0))
+  
+  if __util.dev then
+    local devFilename = 'C:/Development/temp-alt/cef-mixer-master/bin/Debug/cefmixer.exe'
+    if io.fileExists(devFilename) then
+      filename = devFilename
+      ac.warn('Using debug cefmixer build')
+    end
+  end
 
-  -- local devFilename = 'C:/Development/temp-alt/cef-mixer-master/bin/Debug/cefmixer.exe'
-  -- if io.fileExists(devFilename) then
-  --   filename = devFilename
-  --   ac.warn('Using debug cefmixer build')
-  -- end
-
+  local setPriority = Config:get('MISCELLANEOUS', 'SET_CEF_PRIORITY', true)
   local startTime = os.time()
   local errData = {}
   connect.cefState = 0
@@ -54,7 +60,9 @@ local function runWebHostProcess(filename, key, closeCallback)
       ACCSPWB_AUTOPLAY = 1,
       ACCSPWB_NO_PROXY_SERVER = connect.noProxyServer and 1 or nil,
       ACCSPWB_CEF_THREADING = connect.cefLoop and 1 or nil,
-      ACCSPWB_USE_TIMER = false,
+      ACCSPWB_USE_TIMER = connect.useTimer and 1 or nil,
+      ACCSPWB_GPU_PROCESS_PRIORITY = connect.setGPUProcessPriority ~= 0 and connect.setGPUProcessPriority or setPriority and 3 or nil,
+      ACCSPWB_GPU_PRIORITY = connect.setGPUDevicePriority ~= 0 and connect.setGPUDevicePriority or setPriority and 5 or nil,
       ACCSPWB_TARGET_FPS = connect.targetFPS < 1 and 60 or connect.targetFPS,
       ACCSPWB_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.134 Safari/537.36 AssettoCorsa/1.16.3',
       ACCSPWB_DATA_DIRECTORY = ac.getFolder(ac.FolderID.AppDataLocal)..'/ac-cef-layer',
@@ -218,9 +226,11 @@ local function rebuildWebHost()
   else
     -- 33554432 is a special value for when the actual list is being updated
     webHost.mapped.count = 33554432
+    ac.memoryBarrier()
     for i = 1, #webHost.tabs do
       webHost.mapped.tabs[i - 1] = webHost.tabs[i].key
     end
+    ac.memoryBarrier()
     webHost.mapped.count = #webHost.tabs
   end
 end
@@ -236,7 +246,10 @@ local function startWebHost()
   awaitingWebHostStart = true
   connect.cefState = 1
   connect.cefLoop = ac.load('.SmallTweaks.CEF.useCEFLoop') == 1
+  connect.useTimer = ac.load('.SmallTweaks.CEF.useTimer') == 1
   connect.noProxyServer = ac.load('.SmallTweaks.CEF.skipProxyServer') == 1
+  connect.setGPUDevicePriority = ac.load('.SmallTweaks.CEF.setGPUDevicePriority') or 0
+  connect.setGPUProcessPriority = ac.load('.SmallTweaks.CEF.setGPUProcessPriority') or 0
   connect.targetFPS = ac.load('.SmallTweaks.CEF.targetFPS') or 60
   if connect.targetFPS < 1 then connect.targetFPS = 60 end
 
