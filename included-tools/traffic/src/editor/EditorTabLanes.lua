@@ -106,6 +106,9 @@ function EditorTabLanes:doUI()
 end
 
 local _slider = refnumber()
+local _exportWidth = refnumber(4)
+local _verticalOffset = refnumber(0.5)
+local _cloneOffset = refnumber(0)
 
 ---@param lane EditorLane
 function EditorTabLanes:laneItem(lane)
@@ -139,7 +142,48 @@ function EditorTabLanes:laneItem(lane)
       _c = true
     end
     ui.separator()
+    if ui.selectable('Clone with offset…') then
+      ui.modalDialog('Clone lane', function ()
+        ui.slider('##offset', _cloneOffset, -20, 20, 'Offset: %.1f m')
+        ui.newLine()
+        ui.offsetCursorY(4)
+        if ui.modernButton('OK', vec2(ui.availableSpaceX() / 2 - 4, 40), ui.ButtonFlags.Confirm, ui.Icons.Confirm)
+            or ui.keyPressed(ui.Key.Enter) then
+          self.editor:cloneLane(lane, _cloneOffset.value)
+          return true
+        end
+        ui.sameLine(0, 8)
+        return ui.modernButton('Cancel', vec2(-0.1, 40), ui.ButtonFlags.Cancel, ui.Icons.Cancel)
+      end, true)
+    end
     toRemove = ui.selectable('Delete lane')
+    ui.separator()
+    if ui.selectable('Export as AI spline…') then
+      ui.modalDialog('Export AI spline', function ()
+        ui.slider('##width', _exportWidth, 2, 20, 'Lane width: %.1f m')
+        ui.slider('##offset', _verticalOffset, -2, 2, 'Vertical offset: %.2f m')
+        ui.newLine()
+        ui.offsetCursorY(4)
+        if ui.modernButton('OK', vec2(ui.availableSpaceX() / 2 - 4, 40), ui.ButtonFlags.Confirm, ui.Icons.Confirm)
+            or ui.keyPressed(ui.Key.Enter) then
+          os.saveFileDialog({
+            defaultFolder = ac.getFolder(ac.FolderID.ContentTracks), 
+            fileTypes = {{name = 'AI splines', mask = '*.ai'}}, 
+            fileName = 'fast_lane',
+            defaultExtension = '.ai',
+            addAllFilesFileType = true, 
+            flags = bit.bor(os.DialogFlags.PathMustExist, os.DialogFlags.OverwritePrompt, os.DialogFlags.NoReadonlyReturn)
+          }, function (err, filename)
+            if filename then
+              require('EditorLaneExporter')(lane, filename, _exportWidth.value, _verticalOffset.value)
+            end
+          end)
+          return true
+        end
+        ui.sameLine(0, 8)
+        return ui.modernButton('Cancel', vec2(-0.1, 40), ui.ButtonFlags.Cancel, ui.Icons.Cancel)
+      end, true)
+    end
   end)
   ui.pushFont(ui.Font.Small)
 

@@ -10,6 +10,24 @@ local Array = require('Array')
 ---@field activeCars Array|TrafficCar[]
 local TrafficCarFactory = class('TrafficCarFactory')
 
+---@generic T
+---@param items T[]
+---@param weightProvider fun(item: T, index: integer): number
+---@return fun(): T
+local function weightedRandom(items, weightProvider)
+  local totalWeight = 0
+  local weights = table.map(items, function (item, key)
+    totalWeight = totalWeight + weightProvider(item, key)
+    return totalWeight
+  end)
+  local function weightedRandom_s(item, _, pos)
+    return item > pos
+  end
+  return function ()
+    return items[table.findLeftOfIndex(weights, weightedRandom_s, math.random() * totalWeight) + 1]
+  end
+end
+
 ---@param definitions CarDefinition[]
 ---@return TrafficCarFactory
 function TrafficCarFactory:initialize(definitions)
@@ -18,13 +36,18 @@ function TrafficCarFactory:initialize(definitions)
   end
 
   self.definitions = definitions
-  self.pools = table.map(definitions, function (def) return Pool(function (pool)
-    local ret = TrafficCar(def)
-    ret.__pool = pool
-    return ret
-  end) end)
+  self.pools = table.map(definitions, function (def) 
+    return Pool(function (pool)
+      local ret = TrafficCar(def)
+      ret.__pool = pool
+      return ret
+    end) 
+  end)
 
   self.activeCars = Array()
+  self.randomDevice = weightedRandom(self.pools, function (item, index)
+    return definitions[index].chance
+  end)
   -- distantCars = {}
 
   self.carsToGiveOut = 10
@@ -58,7 +81,8 @@ function TrafficCarFactory:get(driver)
   if self.carsToGiveOut == 0 and not justJumped then return end
   self.carsToGiveOut = self.carsToGiveOut - 1
 
-  local ret = table.random(self.pools):get()
+  local pool = self.randomDevice()
+  local ret = pool:get()
   self.activeCars:push(ret)
   ret:repaintFor(driver)
   return ret

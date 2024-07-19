@@ -127,6 +127,25 @@ function EditorMain:doUI(dt)
   end)
 end
 
+---@param lane EditorLane
+function EditorMain:cloneLane(lane, offset)
+  local newLane = EditorLane(lane:encode())
+  newLane.name = 'Copy of '..newLane.name
+  self.lanesList:push(newLane)
+  local cubic = lane:cubicCurve()
+  local v1, v2, v3 = vec3(), vec3(), vec3(0, 1, 0)
+  for i = 1, #newLane.points do
+    cubic:interpolateInto(v1, i, 0, false)
+    cubic:interpolateInto(v2, i, 0.001, false)
+    newLane.points:at(i):addScaled(v1:sub(v2):setCrossNormalized(v1, v3), offset) 
+  end
+  newLane:recalculate()
+  ensureIDUnique(self.lanesList)
+  self.creatingNewLane = nil
+  self:select(newLane)
+  self:onChange()
+end
+
 function EditorMain:laneWorldEditor()
   if self.mousePoint == nil then return end
 

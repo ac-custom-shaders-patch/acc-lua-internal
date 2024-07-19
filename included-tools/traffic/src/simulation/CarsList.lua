@@ -41,6 +41,7 @@ local colorBland = loadColorsList('extension/config/data_oem_colors_vintage.txt'
 --- @field collider string
 --- @field maxSpeed number
 --- @field dynamic number
+--- @field chance number
 --- @field color fun(): rgbm
 --- @field lights CarDefinitionLights
 --- @field dimensions CarDefinitionDimensions
@@ -52,6 +53,16 @@ local speedMultiplier = TrafficConfig.speedMultiplier or 1
 
 --- @type CarDefinition[]
 local cars = {}
+
+---@param id string
+---@return number
+local function guessChance(id)
+  id = id:lower():match('^[%w_]+')
+  if id:find('bus') or id:find('amg') or id:find('alf') then return 0.3 end
+  if id:find('fer') then return 0.2 end
+  if id:find('transit') or id:find('mer') or id:find('bmw') then return 0.5 end
+  return 1
+end
 
 local function rescanCars()
   local dataDir = 'extension/lua/tools/csp-traffic-tool/data'
@@ -65,6 +76,7 @@ local function rescanCars()
       item.cache = {}
       item.dynamic = item.dynamic or 0.8
       item.maxSpeed = item.maxSpeed or 120
+      item.chance = item.chance or guessChance(v)
       item.lights = table.assign({
         headlights = {},
         rear = {},

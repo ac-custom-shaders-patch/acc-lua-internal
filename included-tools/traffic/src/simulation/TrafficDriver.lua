@@ -146,6 +146,7 @@ function TrafficDriver:update(dt)
       
       self.guide:calculateCurrentPosInto(self.pos, false)
       self.car:initializePos(_initPos, self.pos)
+      self.speedKmh = 100 / math.max(self.car.definition.physics.length, 6)
     end
   end
   -- ac.perfFrameEnd(2040)
@@ -267,7 +268,7 @@ function TrafficDriver:updateAwareness(dt)
   if self._distanceTag == nil then error('DistanceTag is required') end
   if self._distanceToNext < 2 and self._distanceTag == DistanceTags.IntersectionMergingCarInFront then self.pauseFor = _mmax(_mrandom() * 3 - 1, 0) end
   if self._nextCar ~= nil and not CarBase.isInstanceOf(self._nextCar) then error('Wrong type: '..tostring(self._nextCar)) end
-  self._distanceToNext = self._distanceToNext - self.dimensions.front
+  self._distanceToNext = self._distanceToNext - self.dimensions.front -- (self._nextCar and self._nextCar.definition.dimensions.rear or 0)
   self._awarenessSleep = self.speedKmh < 0.1 and 0.5 or self.guide.maneuvering and 0.1 or math.clampN((self._distanceToNext / (self.speedKmh / 3.6)) * 0.2, 0.1, 0.3)
 end
 

@@ -46,7 +46,7 @@ local TrafficCar = class('TrafficCar', CarBase)
 function TrafficCar.allocate(definition)
   _lastIndex = _lastIndex + 1
 
-  local root = TrafficContext.carsRoot:createBoundingSphereNode('trafficCar', 3)
+  local root = TrafficContext.carsRoot:createBoundingSphereNode('trafficCar', #vec2(definition.physics.length, definition.physics.width) / 2)
   local modelLod = root:loadKN5LOD(definition.lod, definition.main)
   if not modelLod then error('Models are missing') end
   local carPaintMeshes = modelLod:findMeshes('shader:ksPerPixelMultiMap_damage_dirt')
@@ -484,6 +484,11 @@ function TrafficCar:draw3D(layers)
   if self._distanceSquared < 50^2 then
     layers:with('Turn', function ()
       dbgText[#dbgText + 1] = string.format('turn: %.2f', self.turn)
+    end)
+
+    layers:with('Dimensions', function ()
+      render.debugArrow(self._pos, self._pos + self._dir * self.definition.dimensions.front)
+      render.debugArrow(self._pos, self._pos - self._dir * self.definition.dimensions.rear, nil, rgbm.colors.green)
     end)
 
     layers:with('Number of blocking cars around', function ()

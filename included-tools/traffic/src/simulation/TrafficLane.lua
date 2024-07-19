@@ -360,7 +360,7 @@ function TrafficLane:randomDropSpot(r)
         local nlIndex = self:findClosestLeftIndex(distance)
         local nl = self.orderedCars:at(nlIndex)
         local nr = self.orderedCars:at(nlIndex + 1)
-        if (nl == nil or nl.distance > distance + 10) and (nr == nil or nr.distance < distance - 10) then
+        if (nl == nil or nl.distance > distance + 13) and (nr == nil or nr.distance < distance - 12) then
           return distance
         end
       end
