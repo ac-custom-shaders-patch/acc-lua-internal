@@ -10,3 +10,4 @@ bin
 obj
 deps
 *.xsd
+included-cars/android_auto/res/_favicon*

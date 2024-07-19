@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
@@ -78,31 +79,38 @@ namespace AcTools.Extra.GamepadServer {
                 }
             }).Start();*/
 
-            var serverUrl = $"ws://{GetLanIp()}:{port}";
+            foreach (var lanIP in GetLanIPs()) {
+                Console.WriteLine($"ws://{lanIP}:{port}");
+            }
+
+            /*var serverUrl = $"ws://{GetLanIp()}:{port}";
             var qrGenerator = new QRCodeGenerator();
             var qrCodeData = qrGenerator.CreateQrCode(serverUrl, QRCodeGenerator.ECCLevel.Q);
             var qrFilename = Environment.GetEnvironmentVariable("GAMEPAD_SERVER_IMAGE") ?? "qr.png";
             if (File.Exists(qrFilename)) File.Delete(qrFilename);
             new QRCode(qrCodeData).GetGraphic(40).Save(qrFilename, ImageFormat.Png);
             Console.WriteLine($"Server URL: {serverUrl}");
-            Console.WriteLine($"QR filename: {qrFilename}");
+            Console.WriteLine($"QR filename: {qrFilename}");*/
 
             new Thread(() => {
                 while (_running) {
                     _provider.WriteTime(_interpolator.GetCurrentTime());
-                    Thread.Sleep(1);
+                    Thread.Sleep(50); 
+                    // This sleep was 1 ms for interpolation to work, but it’s no longer in use: good connection
+                    // doesn’t need extrapolation, and bad connection can’t really be extrapolated properly from
+                    // my tests. Now it’s only used to see if the server is alive.
                 }
             }).Start();
         }
 
-        private static string GetLanIp() {
+        private static IEnumerable<string> GetLanIPs() {
             foreach (var address in Dns.GetHostEntry(Dns.GetHostName()).AddressList
                     .Where(x => x.AddressFamily == AddressFamily.InterNetwork)) {
                 Console.WriteLine($"LAN IP candidate: {address}");
             }
             return Dns.GetHostEntry(Dns.GetHostName()).AddressList
-                    .FirstOrDefault(x => x.AddressFamily == AddressFamily.InterNetwork)?.ToString()
-                    ?? throw new Exception("Failed to find LAN IP");
+                    .Where(x => x.AddressFamily == AddressFamily.InterNetwork)
+                    .Select(x => x.ToString()).ToList();
         }
 
         /*private void UpgradeToUdp(string param) {
