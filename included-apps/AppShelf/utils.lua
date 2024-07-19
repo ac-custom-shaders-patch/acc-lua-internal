@@ -36,7 +36,8 @@ local function createInfo(meta)
 end
 
 ---@param app AppInfo
-local function installApp(app)
+---@param callback fun(err: string?)? 
+local function installApp(app, callback)
   if app.installing then return end
   app.installing = true
   app.newApp = false
@@ -45,6 +46,9 @@ local function installApp(app)
   ac.startBackgroundWorker('BackgroundInstall', app, function (err, data)
     if err then
       app.installing = err
+      ui.toast(ui.Icons.Warning, '%s: failed to install' % app.meta.name)
+      ac.warn(err)
+      if callback then callback(err) end
     else
       app.installing = false
       app.installed = data
@@ -54,10 +58,9 @@ local function installApp(app)
       ac.log('openOnceInstalled', openOnceInstalled)
       ac.log('config().openOnceInstalled', config().openOnceInstalled)
       if openOnceInstalled and config().openOnceInstalled then
-        setTimeout(function ()
-          ac.setAppOpen(app.meta.id)
-        end, 0.1)
+        setTimeout(function () ac.setAppOpen(app.meta.id) end, 0.1)
       end
+      if callback then callback(nil) end
     end
   end)
 end
@@ -80,7 +83,7 @@ local function uninstallApp(app)
     app.installed = nil
     ui.toast(ui.Icons.Confirm, '%s is uninstalled' % app.meta.name)
   else
-    ui.toast(ui.Icons.Warning, 'Failed to uninstall %s')
+    ui.toast(ui.Icons.Warning, 'Failed to uninstall %s' % app.meta.name)
   end
 end
 
@@ -107,7 +110,7 @@ local function loadApps(callback, installOwnUpdate)
           if installOwnUpdate then
             installOwnUpdate(item)
           end
-          return nil
+          return nil 
         end
         if item.abTesting and item.abTesting > abTestingKey() then
           return nil

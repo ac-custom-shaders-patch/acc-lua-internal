@@ -40,6 +40,8 @@ end, function (meta)
         return
       end
     
+      if not __util.native('_vasi', response.body) then error('Package is damaged') end
+
       local data = io.loadFromZip(response.body, 'AppShelf/manifest.ini')
       if not data then error('Package is damaged') end
     

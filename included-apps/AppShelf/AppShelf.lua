@@ -86,8 +86,7 @@ local function appDetails(app)
   return false
 end
 
-function script.windowMain(dt)
-  local cfg = utils.config()
+local function ensureDataIsLoaded()
   if not loadedData then
     loadedData = true
     utils.loadApps(function (err, data)
@@ -111,7 +110,12 @@ function script.windowMain(dt)
       end
     end)
   end
+end
 
+function script.windowMain(dt)
+  local cfg = utils.config()
+
+  ensureDataIsLoaded()
   if loadedData == true then
     ui.drawLoadingSpinner(ui.windowSize() / 2 - 20, ui.windowSize() / 2 + 20)
   elseif type(loadedData) == 'table' then
@@ -178,11 +182,9 @@ function script.windowMain(dt)
         ui.sameLine(0, 4)
       end
       ui.offsetCursorY(-2)
-      ui.text('v'..app.meta.version)
-      if app.meta.author ~= 'x4fab' then
-        ui.sameLine(60, 0)
-        ui.text('by '..app.meta.author)
-      end
+      ui.textAligned(app.meta.author ~= 'x4fab' 
+        and 'v'..app.meta.version..' by '..app.meta.author
+        or 'v'..app.meta.version, 0, vec2(-4, 0), true)
       ui.popFont()
       ui.endGroup()
 
@@ -248,4 +250,72 @@ ac.onFolderChanged(ac.getFolder(ac.FolderID.ACApps)..'\\lua', '?', false, functi
       end
     end
   end, 0.5)
+end)
+
+local attemped = {}
+
+---@param app AppInfo|{reason: string?}
+---@param originName string
+---@param callback fun(err: string?)? 
+local function installThirdPartyApp(app, originName, callback)
+  ensureDataIsLoaded()
+  if loadedData == true then
+    setTimeout(installThirdPartyApp:bind(app, originName, callback), 1)
+  elseif type(loadedData) == 'table' then
+    if not attemped[app.meta.id] then
+      attemped[app.meta.id] = true
+    elseif callback then
+      callback('Already tried') 
+      return
+    end
+    
+    for i = 1, #loadedData do
+      if loadedData[i].meta.id == app.meta.id then
+        if not loadedData[i].installed and not loadedData[i].installing then
+          ui.modalPopup('Install %s?' % loadedData[i].meta.name,
+            '%s offers to install an app %s%s. Would you like to proceed?'
+            % {originName, loadedData[i].meta.name, app.reason and ': %s' % app.reason or ''}, function (agreed)
+            if agreed then
+              utils.installApp(loadedData[i], callback)
+            elseif callback then
+              callback('Cancelled')  
+            end
+          end)
+        elseif callback then
+          callback(nil)
+        end
+        return
+      end
+    end
+    if type(app.meta.downloadURL) == 'string' and type(app.meta.name) == 'string' then
+      web.get(app.meta.downloadURL, function (err, response)
+        if __util.native('_vasi', response.body) then
+          ui.modalPopup('Install %s?' % app.meta.name,
+            '%s offers to install an app %s%s. Would you like to proceed?'
+            % {originName, app.meta.name, app.reason or ''}, function (agreed)
+            if agreed then
+              utils.installApp(app, callback)
+            elseif callback then
+              callback('Cancelled') 
+            end
+          end)
+        elseif callback then
+          callback('Package is damaged')  
+        end
+      end)
+    elseif callback then
+      callback('App is not available')
+    end
+  elseif callback then
+    callback('App Shelf is not available')
+  end
+end
+
+ac.onSharedEvent('$SmallTweaks.AppShelf.Install', function (app, senderName)
+  if type(app) == 'table' and type(app.meta) == 'table' and type(app.meta.id) == 'string' then
+    app.location = ac.getFolder(ac.FolderID.ACApps)..'\\lua\\'..app.meta.id
+    installThirdPartyApp(app, senderName, function (err)
+      ac.broadcastSharedEvent('$SmallTweaks.AppShelf.Install.Result', {err = err, installKey = app.installKey})
+    end)
+  end
 end)
