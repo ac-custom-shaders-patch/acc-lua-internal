@@ -7,13 +7,12 @@
 ]]
 
 local qr = {}
-local lastIndex = 0
 local encodeCache = {}
 
 ---Encodes data in a QR code and saves it in a file. 
 ---@param data string @Text to encode.
 ---@param destination string? @Destination filename (if not set, temporary filename will be used).
----@param callback fun(err: string?, data: string?) @Result callback (if everything goes well, `data` points to filename).
+---@param callback fun(err: string?, data: string?)? @Result callback (if everything goes well, `data` points to filename).
 ---@return string @Not a string, but can be used in UI API as an image.
 function qr.encode(data, destination, callback)
   if not data then error('Data is required', 2) end
@@ -29,8 +28,12 @@ function qr.encode(data, destination, callback)
   end
 
   if not destination then
-    lastIndex = lastIndex + 1
+    local lastIndex = (tonumber(ac.load('qr.lastID')) or 1) + 1
+    ac.store('qr.lastID', lastIndex)
     destination = ac.getFolder(ac.FolderID.AppDataTemp)..'/accsp_qr_'..tostring(lastIndex)..'.png'
+    if ui then
+      pcall(ui.unloadImage, destination)
+    end
   end
 
   local filename = ''
@@ -45,11 +48,11 @@ function qr.encode(data, destination, callback)
     timeout = 0
   }, function (err, data)
     if err or data.exitCode ~= 0 then
-      callback(err or data.stderr:trim(), nil)
+      if callback then callback(err or data.stderr:trim(), nil) end
       return
     end
     filename = destination
-    callback(nil, filename)
+    if callback then callback(nil, filename) end
   end)
 
   local ret = setmetatable({}, { __tostring = function() return filename end })

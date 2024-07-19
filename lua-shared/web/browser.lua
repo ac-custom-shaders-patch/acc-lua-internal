@@ -17,7 +17,9 @@
   end
   ```
 
-  Note: don’t use any fields starting with “_”, those might be changed later.
+  Note: don’t use any fields starting with “_”, those might be changed later. Also, use 
+  `ui.beginPremultipliedAlphaTexture()`/`ui.endPremultipliedAlphaTexture()` when drawing browser 
+  if you want your browser to be semi-transparent.
 ]]
 
 local DEBUG_EXCHANGE = const(false)
@@ -28,6 +30,9 @@ local connect = ac.connect{
   cefState = ac.StructItem.byte(), -- 0: ready, 1: installing, ≥10: errors
   cefLoop = ac.StructItem.boolean(),
   noProxyServer = ac.StructItem.boolean(),
+  useTimer = ac.StructItem.boolean(),
+  setGPUDevicePriority = ac.StructItem.int8(),
+  setGPUProcessPriority = ac.StructItem.int8(),
   targetFPS = ac.StructItem.int32(),
 }
 
@@ -236,6 +241,7 @@ end
 local instances = setmetatable({}, {__mode = 'v'})
 
 ---@class WebBrowser
+---@field private _crashReported boolean
 local webBrowser = class('WebBrowser')
 
 ---@param self WebBrowser
@@ -244,6 +250,7 @@ local function submitCommands(self)
     return
   end
 
+  ac.memoryBarrier()
   if self._mm.commandsSet ~= 0 then
     if self._queued == -1 then
       self._queued = setTimeout(function ()
@@ -267,7 +274,7 @@ local function submitCommands(self)
     local dataSize = #data
     if dataSize > ACCSP_MAX_COMMAND_SIZE and p <= e then
       local fileKey = math.randomKey()
-      ac.warn('Writing large MMF', self._prefix..'_'..fileKey)
+      -- ac.warn('Writing large MMF', self._prefix..'_'..fileKey)
       local destination = ac.writeMemoryMappedFile(self._prefix..'_'..fileKey, dataSize + 2)
       if DEBUG_EXCHANGE then ac.log('↑↑', string.char(key), data) end
       destination[0] = key
@@ -420,7 +427,7 @@ local function processCommand(self, key, dataPtr, dataLength, largeCommand)
   if key == CommandFE.LargeCommand then
     ac.fillStructWithBytes(PackedCommand, CommandData.string(dataPtr, dataLength))
     local filename = self._prefix..'_'..PackedCommand.fileKey
-    ac.warn('Reading large MMF', filename)
+    -- ac.warn('Reading large MMF', filename)
     local data = ac.readMemoryMappedFile(filename, PackedCommand.dataSize)
     processCommand(self, data[0], data + 1, PackedCommand.dataSize - 2, true)
     ac.disposeMemoryMappedFile(data)
@@ -611,7 +618,9 @@ end
 local function syncImpl(self)
   self._syncing = true
   local D = self._mm.response
-  for _ = 1, tonumber(self._mm.responseSet) do
+  local dataSize = tonumber(self._mm.responseSet)
+  ac.memoryBarrier()
+  for _ = 1, dataSize do
     local key = D[0]
     local size = readInt16(D, 1)
     D = D + 3
@@ -780,8 +789,11 @@ end
 
 ---@param settings WebBrowser.Settings
 function webBrowser:initialize(settings)
+  -- Flag `externalBeginFrameEnabled` makes things slow, but stable. Seems like when using externalBeginFrameEnabled, 
+  -- sometimes OAP2 is simply not being called despite calling SendExternalBeginFrame()?
+  
   self._uuid = math.randomKey()
-  settings = table.assign({size = vec2(800, 480), directRender = true}, settings, {UUID = self._uuid})
+  settings = table.assign({size = vec2(800, 480), directRender = true}, settings, {UUID = self._uuid, externalBeginFrameEnabled = 0})
   self._settings = settings ---@type WebBrowser.Settings
   self.attributes = settings.attributes or {} ---Store of all your user data needs associated with the browser here.
   self._mm, self._prefix, self._dispose = initWebHost(settings)
@@ -821,6 +833,7 @@ function webBrowser:initialize(settings)
   -- Prebound functions to reduce GC load
   self._syncStep1 = function () syncImpl(self) end
   self._syncStep2 = function ()
+    ac.memoryBarrier()
     self._mm.responseSet = 0
     self._syncing = false
   end
@@ -1021,6 +1034,13 @@ local function sync(self)
   if self._mm.responseSet > 0 and self._dispose and not self._syncing then
     using(self._syncStep1, self._syncStep2)
   end
+  if not self._crashReported and self._listeners[260] then
+    local crash = self:crash()
+    if crash then
+      self._crashReported = true
+      self._listeners[260](self, crash)
+    end
+  end
 end
 
 ---Navigate to a certain URL, or just back or forward.
@@ -1213,6 +1233,7 @@ function webBrowser:focused()
 end
 
 ---Override background color.
+---Note: use `ui.beginPremultipliedAlphaTexture()`/`ui.endPremultipliedAlphaTexture()` if you want your browser to be semi-transparent.
 ---@param color rgbm
 ---@return self
 function webBrowser:setBackgroundColor(color)
@@ -1569,6 +1590,14 @@ function webBrowser:onLoadError(listener)
   return self
 end
 
+---Set a listener for engine crashes.
+---@param listener fun(browser: WebBrowser, data: WebBrowser.Crash)?
+---@return self
+function webBrowser:onCrash(listener)
+  self._listeners[260] = listener
+  return self
+end
+
 ---Prevents navigating webpages with URLs matching given regular expression, with optional callback. Could be used for redirecting custom URL schemes. If so, list of standard schemes you might not want to redirect: https, ftp, file, data, blob, about, chrome, chrome-extension, javascript, ac.
 ---@param listener fun(browser: WebBrowser, data: {originURL: string, targetURL: string, userGesture: boolean, redirect: boolean})?
 ---@return self
@@ -1636,7 +1665,8 @@ function webBrowser:onClose(listener)
   return self
 end
 
----Send data to JavaScript that will arrive to `AC.receive.<key>` function.
+---Send data to JavaScript that will arrive to a function set with `AC.onReceive(key, callback)`. Whatever value is returned by JS callback will be passed to
+---this callback.
 ---@param key string @Key defining which function to call.
 ---@param data boolean|number|string|table? @Data to send to JavaScript (JSON will be used to encode and decode the data).
 ---@param callback fun(reply: boolean|number|string|table?)? @Callback receiving value returned by receiver on JavaScript side.
@@ -2167,6 +2197,7 @@ function webBrowser:draw(p1, p2, realScale)
     return 'blank', h
   end
 
+  -- ac.debug('connect.cefState', connect.cefState)
   if connect.cefState ~= 0 then
     self._mm.beAliveTime = sim.systemTime
     if connect.cefState == 2 then
@@ -2510,11 +2541,22 @@ function webBrowser.skipsProxyServer()
   return connect.noProxyServer
 end
 
----@param requestedSettings {useCEFLoop: boolean?, skipProxyServer: boolean?, targetFPS: integer?}?
-function webBrowser.configure(requestedSettings)  
-  ac.store('.SmallTweaks.CEF.useCEFLoop', requestedSettings and requestedSettings.useCEFLoop and 1 or 0)
-  ac.store('.SmallTweaks.CEF.skipProxyServer', requestedSettings and requestedSettings.skipProxyServer and 1 or 0)
-  ac.store('.SmallTweaks.CEF.targetFPS', requestedSettings and requestedSettings.targetFPS or 0)
+---Call this function to tweak global CEF behavior. Feel free to not include parameters you don’t want to be changed.
+---- `useCEFLoop`: let Chromium engine handle updates and message processing instead of a custom implementation, might be smoother and more stable, but adds up to 16 ms of extra latency.
+---- `useTimer`: use Windows Multimedia API to set the wrapper loop instead of using `Sleep()` for timing, pretty useless but just in case.
+---- `skipProxyServer`: do not load system proxy settings, helps with initialization speed.
+---- `targetFPS`: FPS for browser to render at, default value is 60 FPS.
+---- `setGPUProcessPriority`: argument for calling `D3DKMTSetProcessSchedulingPriorityClass()` for all CEF processes, valid values are within 0…5 range.
+---- `setGPUDevicePriority`: argument for calling `SetGPUThreadPriority()` for main process, won’t make difference if `directRender` is disabled.
+---@param requestedSettings {useCEFLoop: boolean?, useTimer: boolean?, setGPUDevicePriority: integer?, setGPUProcessPriority: integer?, skipProxyServer: boolean?, targetFPS: integer?}?
+function webBrowser.configure(requestedSettings) 
+  if type(requestedSettings) ~= 'table' then return end
+  if requestedSettings.useCEFLoop ~= nil then ac.store('.SmallTweaks.CEF.useCEFLoop', requestedSettings.useCEFLoop and 1 or 0) end
+  if requestedSettings.useTimer ~= nil then ac.store('.SmallTweaks.CEF.useTimer', requestedSettings.useTimer and 1 or 0) end
+  if requestedSettings.skipProxyServer ~= nil then ac.store('.SmallTweaks.CEF.skipProxyServer', requestedSettings.skipProxyServer and 1 or 0) end
+  if type(requestedSettings.targetFPS) == 'number' then ac.store('.SmallTweaks.CEF.targetFPS', requestedSettings.targetFPS) end
+  if type(requestedSettings.setGPUDevicePriority) == 'number' then ac.store('.SmallTweaks.CEF.setGPUDevicePriority', requestedSettings.setGPUDevicePriority) end
+  if type(requestedSettings.setGPUProcessPriority) == 'number' then ac.store('.SmallTweaks.CEF.setGPUProcessPriority', requestedSettings.setGPUProcessPriority) end
 end
 
 ---@type fun(settings: WebBrowser.Settings?): WebBrowser

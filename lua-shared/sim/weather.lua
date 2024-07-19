@@ -87,6 +87,19 @@ roadTemperatureCoefficients[ac.WeatherType.Hail] =              -1.0
 -- Actual library:
 local weatherUtils = {}
 
+---Returns string describing given rain intensity.
+---@param intensity number
+---@return string
+function weatherUtils.rainDescription(intensity)
+  if intensity < 0.001 then return "None" end
+  if intensity < 0.02 then return "Drizzle" end
+  if intensity < 0.07 then return "Light rain" end
+  if intensity < 0.15 then return "Extended shower" end
+  if intensity < 0.3 then return "Brief thundershower" end
+  if intensity < 0.6 then return "Heavy downpour" end
+  return "Severe storm"
+end
+
 ---Estimate rain intensity (in 0…1 range) for a certain weather type.
 ---@param weatherType ac.WeatherType
 ---@return number
@@ -134,17 +147,30 @@ function weatherUtils.setRoadTemperature(conditions, timeOfDaySeconds)
 end
 
 local weatherDebug = nil
+local weatherDebugExt = nil
 
 ---Sync weather type with custom weather type selected in CSP Debug App (in case you want to 
 ---support that dropdown list).
 ---@param conditions ac.ConditionsSet @Fields `currentType` and `upcomingType` might be updated.
+---@param version integer? @Pass `1` to set other parameters, not just the weather type. Default value: `0`.
 ---@return boolean @Returns `true` if custom weather type is set.
-function weatherUtils.debugAware(conditions)
+function weatherUtils.debugAware(conditions, version)
   if not weatherDebug then
     weatherDebug = ac.connect({
       ac.StructItem.key('weatherFXDebugOverride'),
       weatherType = ac.StructItem.byte(),
       debugSupported = ac.StructItem.boolean()
+    })
+    weatherDebugExt = ac.connect({
+      ac.StructItem.key('weatherFXDebugOverride.1'),
+      windDirection = ac.StructItem.float(),
+      windSpeedFrom = ac.StructItem.float(),
+      windSpeedTo = ac.StructItem.float(),
+      humidity = ac.StructItem.float(),
+      pressure = ac.StructItem.float(),
+      rainIntensity = ac.StructItem.float(),
+      rainWetness = ac.StructItem.float(),
+      rainWater = ac.StructItem.float(),
     })
     weatherDebug.debugSupported = true
     weatherDebug.weatherType = 255
@@ -160,6 +186,16 @@ function weatherUtils.debugAware(conditions)
 
   conditions.currentType = weatherDebug.weatherType
   conditions.upcomingType = weatherDebug.weatherType
+  if (version or 0) >= 1 then
+    conditions.wind.direction = weatherDebugExt.windDirection
+    conditions.wind.speedFrom = weatherDebugExt.windSpeedFrom
+    conditions.wind.speedTo = weatherDebugExt.windSpeedTo
+    conditions.humidity = weatherDebugExt.humidity
+    conditions.pressure = weatherDebugExt.pressure
+    conditions.rainIntensity = weatherDebugExt.rainIntensity
+    conditions.rainWetness = weatherDebugExt.rainWetness
+    conditions.rainWater = weatherDebugExt.rainWater
+  end
   return true
 end
 
