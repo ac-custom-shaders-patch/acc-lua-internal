@@ -1,31 +1,27 @@
 RadioAppData = {
-  stations = nil,
-  baseStations = nil,
-  userStations = nil,
-  selectedStation = nil,
+  lib = nil,
   selectedColor = rgbm.new('#EF5261'),
-  
-  ---@type ui.MediaPlayer
-  mediaPlayer = nil
 }
 
+local bg = touchscreen.blurredBackgroundImage(rgbm.new('#EF5261'))
+
+local function time(value)
+  if value == -1 then return '--:--' end
+  return string.format('%02d:%02d', math.floor(value / 60), math.floor(value % 60))
+end
+
 function RadioAppData:playToggle()
-  if self.mediaPlayer:playing() then self.mediaPlayer:pause()
-  else self.mediaPlayer:play() end
+  self.lib.pause(self.lib.playing())
 end
 
 function RadioAppData:selectStation(station)
   if type(station) == 'number' then
-    local curIndex = table.indexOf(self.stations, self.selectedStation)
-    return self:selectStation(self.stations[(#self.stations + curIndex - 1 + station) % #self.stations + 1]) 
+    local stations = RadioAppData.lib.stations()
+    if #stations == 0 then return end
+    local curIndex = table.indexOf(stations, RadioAppData.lib.current()) or stations[1]
+    return self:selectStation(stations[(#stations + curIndex - 1 + station) % #stations + 1]) 
   end
-  if self.selectedStation == station then return end
-  self.selectedStation = station
-  if not self.mediaPlayer then
-    self.mediaPlayer = ui.MediaPlayer():setAutoPlay(true)
-    touchscreen.syncVolume(self.mediaPlayer)
-  end
-  self.mediaPlayer:setSource(station and station[2])
+  RadioAppData.lib.play(station)
 end
 
 local transition = touchscreen.createTransition(0.85)
@@ -35,35 +31,50 @@ local function step(v)
   return (math.floor(v / 2) + math.smoothstep(math.min(v % 2, 1)))
 end
 
-local function updateStationsList()
-  if not RadioAppData.baseStations then
-    RadioAppData.baseStations = table.filter(table.map(io.load(io.relative('stations.txt')):split('\n'), function (line)
-      if #line == 0 then return {} end
-      return table.map(string.split(line, '#', 2)[1]:split('='), function (x) return x:trim() end)
-    end), function (line) return #line == 2 end)
-    RadioAppData.userStations = stringify.tryParse(ac.storage.radioUserStations, nil, {})
-  end
-  RadioAppData.stations = table.chain(RadioAppData.userStations, RadioAppData.baseStations)
+local function addUserStation(name, url)
+  RadioAppData.lib.addStation(name, url, 1)
 end
 
-local function addUserStation(name, url)
-  table.insert(RadioAppData.userStations, {name, url})
-  RadioAppData.userStations = table.distinct(RadioAppData.userStations, function (item) return item[2] end)
-  ac.storage.radioUserStations = stringify(RadioAppData.userStations)
-  updateStationsList()
-end
+local previousArtwork
 
 return function (dt)
-  if not RadioAppData.stations then
-    updateStationsList()
+  if not RadioAppData.lib then
+    RadioAppData.lib = require('shared/utils/radio')
+    RadioAppData.lib.setVolume(touchscreen.getVolume())
+    for i, v in ipairs(stringify.tryParse(ac.storage.radioUserStations, nil, {})) do
+      RadioAppData.lib.addStation(v[1], v[2], i)
+    end
+    -- ac.storage.radioUserStations = nil -- TODO
+    RadioAppData.lib.onMetadataUpdate(function ()
+      if previousArtwork then
+        ui.unloadImage(previousArtwork)
+      end
+      local curArtwork = RadioAppData.lib.getArtwork()
+      previousArtwork = curArtwork
+      if previousArtwork then
+        ui.onImageReady(previousArtwork, function ()
+          if curArtwork == previousArtwork then
+            bg.update(RadioAppData.lib.getArtwork())
+          end
+        end)
+      else
+        bg.update(nil)
+      end
+    end)
   end
+
+  if dt == false then
+    return
+  end
+
+  RadioAppData.selectedColor:set(bg.accent())
+  bg.draw(dt)
 
   ui.childWindow('stationsList', vec2(400, ui.availableSpaceY()), function ()
     ui.offsetCursorY(40)
-    ui.indent(padding)
-    for i = 1, #RadioAppData.stations do
-      local s = RadioAppData.stations[i]
-      ui.dwriteText(s[1], 20, RadioAppData.selectedStation == s and RadioAppData.selectedColor or rgbm.colors.white)
+    ui.indent(padding) 
+    for _, s in ipairs(RadioAppData.lib.stations()) do
+      ui.dwriteText(s.name, 20, s == RadioAppData.lib.current() and RadioAppData.selectedColor or rgbm.colors.white)
       if touchscreen.itemTapped() then
         RadioAppData:selectStation(s)
       end
@@ -76,20 +87,14 @@ return function (dt)
       system.openInputPopup('Enter URL', '', function (dt, value, changed)
         if changed and #value > 0 then
           loaded = value
-          if table.some(RadioAppData.stations, function (item) return item[2] == value end) then
+          if table.some(RadioAppData.lib.stations(), function (item) return item.url == value end) then
             headers = 'already added'
             loading = false
           else
             loading = true
-            web.request('GET', value, { [':headers-only'] = true }, function (err, response)
+            RadioAppData.lib.getStreamMetadataAsync(value, function (err, data)
               if value == loaded then
-                if err then
-                  headers = err:lower()
-                elseif response.headers['icy-name'] then
-                  headers = response.headers
-                else
-                  headers = 'not a station'
-                end
+                headers = err and err:lower() or data
                 loading = false
               end
             end)
@@ -98,17 +103,17 @@ return function (dt)
         if loading then
           ui.offsetCursor(ui.availableSpace() / 2 - 30)
           touchscreen.loading(60)
-        elseif headers  then
+        elseif headers then
           if type(headers) == 'string' then
             ui.textAligned('Error: '..headers, 0.5, ui.availableSpace())
           else
             ui.offsetCursorY(ui.availableSpaceY() / 2 - 40)
             ui.offsetCursorX(ui.availableSpaceX() / 2 - 100)
-            ui.textAligned(string.format('Found: %s\n%s\nGenre: %s\nBitrate: %s Kbps', headers['icy-name'], headers['icy-description'] or '(No description)',
-              headers['icy-genre'] or '?', headers['icy-br'] or '?'), 0, vec2(200, 60))
+            ui.textAligned(string.format('Found: %s\n%s\nGenre: %s\nBitrate: %s Kbps', headers.name, headers.description or '(No description)',
+              headers.genre or '?', headers.bitrateKbps or '?'), 0, vec2(200, 60))
             ui.offsetCursorX(ui.availableSpaceX() / 2 - 100)
             if touchscreen.button('ADD', vec2(200, 24), RadioAppData.selectedColor, 11) then
-              addUserStation(headers['icy-name'], value)
+              addUserStation(headers.name, value)
               return true
             end
           end
@@ -124,19 +129,60 @@ return function (dt)
     system.scrolling(dt)
   end)
 
-  if not RadioAppData.mediaPlayer then return end
+  local current = RadioAppData.lib.current()
+  if not current then return end
 
   local tr = transition(dt, true)
-  touchscreen.syncVolumeIfFresh(RadioAppData.mediaPlayer)
 
   ui.pushStyleVarAlpha(tr)
   local playerX = math.max(padding + 240, ui.windowWidth() * 0.45)
   ui.setCursor(vec2(playerX + 200 * (1 - tr), 0))
-  ui.childWindow('player', vec2(400, ui.windowHeight()), function ()
+  ui.childWindow('player', vec2(ui.windowWidth() - (playerX + 200 * (1 - tr)) - 80, ui.windowHeight()), function ()
     ui.offsetCursorY(80)
     ui.dwriteText('Now playing:', 12)
-    ui.dwriteText(RadioAppData.selectedStation[1], 30)
-    ui.dwriteText(RadioAppData.selectedStation[2], 12, rgbm.colors.gray)
+    if RadioAppData.lib.hasMetadata(current) then
+      if RadioAppData.lib.getArtwork() then 
+        ui.offsetCursorY(8)
+        ui.image(RadioAppData.lib.getArtwork(), 80)
+        ui.sameLine(0, 12)
+        ui.beginGroup()
+      end
+      ui.dwriteText(RadioAppData.lib.getTitle() or current.name, 30)
+      ui.dwriteText(RadioAppData.lib.getArtist() or RadioAppData.lib.getTitle() and current.name or current.url, 12, rgbm.colors.gray)
+      if RadioAppData.lib.getTimePlayed() >= 0 then
+        ui.dwriteText(string.format('%s / %s', time(RadioAppData.lib.getTimePlayed()), time(RadioAppData.lib.getTimeTotal())), 12, rgbm.colors.gray)
+      end
+      if RadioAppData.lib.hasHistory(current) and RadioAppData.lib.getArtwork() then 
+        ui.endGroup()
+        if touchscreen.itemTapped() then
+          local stationName, loaded = current.name, nil
+          RadioAppData.lib.getHistoryAsync(current, function (err, data)
+            loaded = err and err:lower() or data
+          end)
+          system.openPopup('History', function (dt)
+            if loaded == nil then
+              ui.offsetCursor(ui.availableSpace() / 2 - 30)
+              touchscreen.loading(60)
+            elseif type(loaded) == 'string' then
+              ui.textAligned('Error: %s' % loaded, 0.5, ui.availableSpace())
+            elseif type(loaded) == 'table' then
+              system.scrollList(dt, function ()
+                for _, v in ipairs(loaded) do
+                  if _ > 1 then
+                    ui.separator()
+                  end
+                  ui.dwriteText(v.title, 30)
+                  ui.dwriteText(v.artist or stationName, 30)
+                end
+              end)
+            end
+          end)
+        end
+      end
+    else
+      ui.dwriteText(current.name, 30)
+      ui.dwriteText(current.url, 12, rgbm.colors.gray)
+    end
 
     local p = 140
     local y = 40
@@ -145,10 +191,10 @@ return function (dt)
       RadioAppData:selectStation(-1)
     end
     ui.setCursor(vec2(p - 0 - 30, y + 182))
-    if touchscreen.iconButton(RadioAppData.mediaPlayer:playing() and ui.Icons.Pause or ui.Icons.Play, 60) then
+    if touchscreen.iconButton(RadioAppData.lib.playing() and ui.Icons.Pause or ui.Icons.Play, 60) then
       RadioAppData:playToggle()
     end
-    if not RadioAppData.mediaPlayer:hasAudio() then
+    if not RadioAppData.lib.loaded() then
       local c = vec2(p, y + 200 + 12)
       ui.drawCircle(c, 36, rgbm.colors.gray, 30, 2)
 

@@ -6,6 +6,15 @@
 local archive = io.relative('res.zip')
 local images = table.map(io.scanZip(archive), function (x) return x:match('%.jpg$') and archive..'::'..x end)
 
+local collectedDir = __dirname..'/res'
+local collectedBackgrounds = table.map(io.scanDir(collectedDir, '_collected_*.jpg'), function (i) return '%s/%s' % {collectedDir, i} end)
+local exclusiveBackgrounds = table.filter(table.map(table.flatten(table.map(ac.configValues({ ExclusiveBackground = {} }).ExclusiveBackground, function (item)
+  return item:split(',', nil, true, true)
+end)), function (i)
+  return '%s/%s/extension/%s' % {ac.getFolder(ac.FolderID.ContentCars), car:id(), i}
+end), io.fileExists)
+images = table.chain(exclusiveBackgrounds, collectedBackgrounds, images)
+
 local selectedImage = images[1]
 local smoothBackground = ui.ExtraCanvas(64)
 
@@ -31,7 +40,7 @@ return function (dt)
     local size = vec2(465, 240)
     for i = 1, #images do
       if ui.areaVisible(size) then
-        ui.image(images[i], size, rgbm.colors.white, rgbm(0, 0, 0, 0.05), true)
+        ui.image(images[i], size, rgbm.colors.white, rgbm(0, 0, 0, 0.05), nil, nil, ui.ImageFit.Fill)
       else
         ui.dummy(size)
       end
@@ -44,6 +53,12 @@ return function (dt)
   ui.setCursor(vec2(ui.windowWidth() - 160, ui.windowHeight() / 2 - 17))
   if touchscreen.accentButton(ui.Icons.Confirm, 34) then
     system.setWallpaper(selectedImage)
+    if table.contains(exclusiveBackgrounds, selectedImage) then
+      io.createDir(collectedDir)
+      _G.saving = ui.ExtraCanvas(vec2(930, 480), 1):update(function ()
+        ui.drawImage(selectedImage, vec2(), ui.windowSize(), ui.ImageFit.Fill)
+      end):save('%s/_collected_%s.jpg' % {collectedDir, car:id()}, ac.ImageFormat.JPG)
+    end
     system.closeApp()
   end
 end

@@ -51,7 +51,7 @@ return function (dt)
   arrowAngle = turn.y
 
   if statusText then
-    system.setNotification(drawNextTurnArrow, statusText, 'Navigator', true)
+    system.setNotification(drawNextTurnArrow, statusText, 'Maps', true)
   else
     system.setNotification(nil)
   end

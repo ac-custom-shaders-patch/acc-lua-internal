@@ -137,6 +137,7 @@ end
 local function parseYoutubeMainPageInner(html, separator)
   local ret = {}
   local index = html:find(separator)
+  ac.debug('html', html)
   while index ~= nil do
     local nextIndex = html:find(separator, index + 30)
     local piece = nextIndex == nil and html:sub(index) or html:sub(index, nextIndex)
@@ -210,13 +211,25 @@ end
 ---@param searchQuery string|nil
 ---@param callback fun(err: string, videos: YoutubeVideo[])
 function Youtube.getVideos(searchQuery, callback)
+  if not searchQuery then
+    -- YouTube no longer populates default page with videos
+    searchQuery = table.random({'racing', 'motorsport', 'assetto corsa', 'cats', 'cars', 'automotive', 'music', 
+      'driving', 'f1', 'gt3', 'rally', 'top gear'})
+  end
+
   local cacheKey = searchQuery == nil and 'cache' or nil -- 'cache:'..tostring(searchQuery)
   local cached = ac.load(cacheKey)
   if not searchQuery and cached then
     return callback(nil, parseYoutubeMainPage(cached))
   end
 
-  web.get(buildURL(searchQuery), { ['Accept-Language'] = 'en-US' }, function (err, response)
+  web.get(buildURL(searchQuery), { 
+    ['Accept-Language'] = 'en-US', 
+    -- ['User-Agent'] = 'com.google.ios.youtubemusic/6.33.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
+    -- ['X-YouTube-Client-Version'] = '6.33.3',
+    -- ['X-YouTube-Client-Name'] = 'IOS_MUSIC',
+    -- [ 'Origin'] = 'https://youtubei.googleapis.com',
+  }, function (err, response)
     if err then return callback('Failed to load YouTube: '..err, nil) end
     if cacheKey then ac.store(cacheKey, response.body) end
     local videos = try(function () return parseYoutubeMainPage(response.body) end, 

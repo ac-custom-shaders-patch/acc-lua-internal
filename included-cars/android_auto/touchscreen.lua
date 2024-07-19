@@ -28,6 +28,7 @@ local vkCooldown = 0
 local vkHeldTimer = nil
 local stopNInput = 0
 local sleptFor = 0
+local vkStayActive = 0
 local uis = ac.getUI()
 
 ---Call this function at the start of a frame.
@@ -102,7 +103,9 @@ function touchscreen.update(forceAwake, dt)
     if vkActive > 0.999 and not vkActiveText then vkCooldown = 0.5 end
     vkActive = math.applyLag(vkActive, vkCooldown <= 0 and vkActiveText and 1 or 0, 0.8, dt) 
   end
-  vkActiveText = nil
+  if ui.frameCount() > vkStayActive then
+    vkActiveText = nil
+  end
 
   vkPosition = math.ceil(ui.windowHeight() * (1 - math.saturateN(vkActive) * 0.64))
   vkOffset = ui.windowHeight() - vkPosition
@@ -261,9 +264,20 @@ function touchscreen.keyboard()
         keyboardButton(btnPopup, 3)
       end
 
-      if ui.windowHovered(ui.HoveredFlags.AllowWhenBlockedByActiveItem) and (ui.mouseClicked() or ui.mouseReleased()) then
-        reactivateText = prevTextField
-        vkActive = 3
+      if ui.windowHovered(ui.HoveredFlags.AllowWhenBlockedByActiveItem) then
+        if ui.mouseClicked() or ui.mouseReleased() then
+          reactivateText = prevTextField
+          vkActive = 3
+        end
+        
+        local captured = ui.captureKeyboard(true, true, true)
+        if charToAdd == nil then
+          if #captured > 0 then
+            charToAdd = captured:queue()
+          elseif captured.pressedCount > 0 then
+            charToAdd = captured.pressed[0]
+          end
+        end
       end
     end)
   end
@@ -276,6 +290,8 @@ end
 function touchscreen.keyboardOffset()
   return vkOffset
 end
+
+local lastActiveLabel
 
 ---Text input control with onscreen keyboard support. Returns updated string (which would be the input string unless it changed, so no)
 ---copying there. Second return value would change to `true` when text has changed. Example:
@@ -292,7 +308,7 @@ function touchscreen.inputText(label, str, flags)
   if label == reactivateText then
     reactivateText = nil
     ui.setKeyboardFocusHere()
-  elseif charToAdd ~= nil then
+  elseif charToAdd ~= nil and lastActiveLabel == label then
     if type(charToAdd) == 'number' then
       if charToAdd == ui.KeyIndex.Return then done = true end
       ui.setKeyboardButtonDown(charToAdd)
@@ -309,6 +325,7 @@ function touchscreen.inputText(label, str, flags)
   local ret = ui.inputText(label, str, bit.bor(flags or 0, ui.InputTextFlags.NoUndoRedo))
   if stopNInput == 0 and ui.itemActive() then
     vkActiveText = label
+    lastActiveLabel = label
   end
   if str and #str > 0 then
     local c = ui.getCursor()
@@ -327,6 +344,11 @@ function touchscreen.inputText(label, str, flags)
 end
 
 function touchscreen.inputBehaviour()
+  -- if vkCooldown > 0.4 then
+  --   vkCooldown = 0
+  --   -- vkActive = 1
+  -- end
+  vkStayActive = ui.frameCount() + 1
   vkActiveText = true
   local r = charToAdd
   charToAdd = nil
@@ -446,12 +468,14 @@ local iconSizeValue = vec2(24, 24)
 ---@param fontSize number
 ---@param icon ui.Icons?
 ---@param iconSize vec2?
+---@param disabled boolean?
 ---@return boolean
-function touchscreen.button(label, buttonSize, buttonColor, fontSize, icon, iconSize)
+function touchscreen.button(label, buttonSize, buttonColor, fontSize, icon, iconSize, disabled)
   local p = ui.getCursor()
   ui.invisibleButton(label, buttonSize)
   ui.drawRectFilled(p, p + buttonSize, 
-    ui.itemActive() and rgbm(buttonColor.r * 0.8, buttonColor.g * 0.8, buttonColor.b * 0.8, buttonColor.mult) or buttonColor)
+    not disabled and ui.itemActive() and 
+      (rawequal(buttonColor, rgbm.colors.black) and rgbm(0.12, 0.12, 0.12, 1) or rgbm(buttonColor.r * 0.8, buttonColor.g * 0.8, buttonColor.b * 0.8, buttonColor.mult)) or buttonColor)
   ui.setCursor(p)
   if fontSize ~= 0 then
     ui.dwriteTextAligned(label, fontSize, ui.Alignment.Center, ui.Alignment.Center, buttonSize)
@@ -460,9 +484,11 @@ function touchscreen.button(label, buttonSize, buttonColor, fontSize, icon, icon
     if iconSize then iconSizeValue:set(iconSize) end
     ui.offsetCursorX((buttonSize.x - iconSizeValue.x) / 2)
     ui.offsetCursorY((buttonSize.y - iconSizeValue.y) / 2)
+    if disabled then ui.pushStyleVarAlpha(0.5) end
     ui.icon(icon, iconSizeValue)
+    if disabled then ui.popStyleVar(1) end
   end
-  return tapped and stopNInput == 0 and ui.itemHovered()
+  return not disabled and tapped and stopNInput == 0 and ui.itemHovered()
 end
 
 local loadingSize = vec2()
@@ -504,14 +530,23 @@ function touchscreen.syncVolumeIfFresh(mediaPlayer)
   end
 end
 
-function touchscreen.setMuted(muted)
-  storedValues.muted = muted ~= false
-  volumeFresh = ui.time()
+function touchscreen.getVolume()
+  return storedValues.muted and 0 or storedValues.volume
 end
 
-function touchscreen.setVolume(volume)
+function touchscreen.getVolumeIfFresh()
+  if ui.time() - volumeFresh > 0.5 then return nil end
+  return storedValues.muted and 0 or storedValues.volume
+end
+
+function touchscreen.setMuted(muted, forceStale)
+  storedValues.muted = muted ~= false
+  volumeFresh = forceStale and -1 or ui.time()
+end
+
+function touchscreen.setVolume(volume, forceStale)
   storedValues.volume = tonumber(volume) or 0
-  volumeFresh = ui.time()
+  volumeFresh = forceStale and -1 or ui.time()
 end
 
 function touchscreen.volumeControl(pos, width, height)
@@ -711,4 +746,73 @@ function touchscreen.createTransition(lag, initialValue)
     end
     return value
   end
+end
+
+---@param defaultAccentColor rgbm
+function touchscreen.blurredBackgroundImage(defaultAccentColor)
+  local progressBaseColor = defaultAccentColor
+  local blurredBg = ui.ExtraCanvas(64, 4)
+  local progressCurColor = progressBaseColor
+  local bgColor = rgbm(0, 0, 0, 1)
+  local coverColor1 = rgbm(0, 0, 0, 0.2)
+  local coverColor2 = rgbm(0, 0, 0, 1)
+  local active = -1
+  local hasImage = false
+  return {
+    ---@param image ui.ImageSource?
+    update = function (image)
+      if image then
+        blurredBg:update(function (dt)
+          ui.beginBlurring()
+          ui.drawImage(image, 0, ui.windowSize())
+          ui.endBlurring(0.2)
+        end)
+    
+        blurredBg:accessData(function (err, data)
+          local c = rgbm()
+          progressCurColor = rgbm()
+          for y = 1, 3 do
+            for x = 1, 3 do
+              progressCurColor:add(data:colorTo(c, 16*x, 16*y))
+            end
+          end
+          progressCurColor:scale(1 / progressCurColor.mult)
+          local h = progressCurColor.rgb:hsv()
+          if h.s < 0.01 or h.v < 0.01 then
+            progressCurColor.rgb:set(defaultAccentColor.rgb)
+          else
+            h.v = 1
+            h.s = math.min(h.s * 1.5, 1)
+            progressCurColor.rgb:set(h:rgb())
+          end
+    
+          bgColor.rgb:set(progressCurColor.rgb):scale(0.07)
+          coverColor2.rgb:set(progressCurColor.rgb):scale(0.07)
+          hasImage = true
+        end) 
+      else
+        hasImage = false
+      end
+    end,
+    draw = function (dt)
+      if active == -1 then active = hasImage and 1 or 0 end
+      active = math.applyLag(active, hasImage and 1 or 0, 0.9, dt)
+      if active > 0.001 then
+        ui.drawRectFilled(0, ui.windowSize(), bgColor)
+        ui.beginBlurring()
+        ui.drawImage(blurredBg, -80, ui.windowHeight() + 80)
+        ui.endBlurring(0.03)
+        ui.drawRectFilledMultiColor(-80, ui.windowHeight() + 80, coverColor1, coverColor2, coverColor2, coverColor1)
+      end
+      if active < 0.999 then
+        ui.drawRectFilled(0, ui.windowSize(), rgbm(0, 0, 0, 1 - active))
+      end
+    end,
+    accent = function ()
+      if active < 0.999 then
+        return active < 0.001 and defaultAccentColor or math.lerp(defaultAccentColor, progressCurColor, active)
+      end
+      return progressCurColor
+    end,
+  }
 end

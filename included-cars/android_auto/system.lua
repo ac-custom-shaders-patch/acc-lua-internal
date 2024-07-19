@@ -3,6 +3,33 @@ require('touchscreen')
 ac.setLogSilent(true)
 ui.setAsynchronousImagesLoading(true)
 
+do
+  local bak = ac.currentlyPlaying
+  local radioFallback
+  ac.currentlyPlaying = function ()
+    local r = bak()
+    if r.sourceID == 'INTERNET_RADIO' then
+      if not radioFallback then
+        require('apps/radio/app')(false)
+        radioFallback = {
+          isPlaying = false,
+          hasCover = false,
+          title = '',
+          album = '',
+          artist = '',
+          sourceID = '',
+          albumTracksCount = -1,
+          trackNumber = -1,
+          trackDuration = -1,
+          trackPosition = -1,
+        }
+      end
+      return radioFallback
+    end
+    return r
+  end
+end 
+
 local size = ac.currentDisplaySize()
 
 ---System, like a simple version of some sort of operating system running
@@ -170,8 +197,14 @@ local function drawApp(app, space, dt, offset)
     if type(app.main) == 'function' then
       app.main(dt, app.args)
       if app.args then app.args = nil end
-    elseif offset < 0.5 and type(app.main) == 'string' then
-      app.main = require(app.main)
+    elseif offset < 0.5 then
+      if type(app.main) == 'string' then
+        app.main = require(app.main)
+      elseif type(app.main) == 'table' then
+        local o, s = pcall(loadstring, app.main[1])
+        if o then o, s = pcall(s) end
+        app.main = o and s or nil
+      end
     end
   end)
   if resumeInput then resumeInput() end
@@ -210,8 +243,14 @@ local function drawBottomBar(space, dt)
   if appStatus == false then
     appStatus = table.maxEntry(apps, function (app) return app.status ~= nil and app.statusPriority > 0 and (app == appCurrent and 0.001 or app.statusPriority) or 0 end)
     if appStatus and (appStatus.statusPriority <= 0 or not appStatus.status) then appStatus = nil end
-    if appStatus and type(appStatus.status) == 'string' then
-      appStatus.status = require(appStatus.status)
+    if appStatus and type(appStatus.status) ~= 'function' then
+      if type(appStatus.status) == 'string' then
+        appStatus.status = require(appStatus.status)
+      elseif type(appStatus.status) == 'table' then
+        local o, s = pcall(loadstring, appStatus.status[1])
+        if o then o, s = pcall(s) end
+        appStatus.status = o and s or nil
+      end
     end
   end
 
@@ -636,9 +675,10 @@ system.screenshots = {}
 ---@param appID string
 ---@param appFolder string
 function system.addApp(appID, appFolder)
-  local manifestFilename = __dirname..'/'..appFolder..'/manifest.ini'
+  local appFolderPath = __dirname..'/'..appFolder
+  local manifestFilename = appFolderPath..'/manifest.ini'
   if not io.fileExists(manifestFilename) then return end
-  if io.fileExists(__dirname..'/'..appFolder..'/condition.lua') and require(appFolder..'/condition') == false then return end
+  if io.fileExists(appFolderPath..'/condition.lua') and require(appFolder..'/condition') == false then return end
 
   local manifest = ac.INIConfig.load(manifestFilename, ac.INIFormat.Extended)
   if manifest == nil then
@@ -653,14 +693,14 @@ function system.addApp(appID, appFolder)
     name = manifest:get('ABOUT', 'NAME', appID),
     displays = manifest:get('SCRIPTABLE_DISPLAY', 'DISPLAY', ac.INIConfig.OptionalList),
     dynamicTextures = manifest:get('DYNAMIC_TEXTURE', 'RENDERING_CAMERA', ac.INIConfig.OptionalList),
-    icon = __dirname..'/'..appFolder..'/icon.png',
-    main = io.fileExists(__dirname..'/'..appFolder..'/app.lua') and appFolder..'/app' or nil,
-    status = io.fileExists(__dirname..'/'..appFolder..'/status.lua') and appFolder..'/status' or nil,
+    icon = appFolderPath..'/icon.png',
+    main = io.fileExists(appFolderPath..'/app.lua') and appFolder..'/app' or nil,
+    status = io.fileExists(appFolderPath..'/status.lua') and appFolder..'/status' or nil,
     statusPriority = manifest:get('STATUS', 'BASE_PRIORITY', 0),
     notificationPriority = manifest:get('NOTIFICATIONS', 'PRIORITY', 0),
   }
   appRunning = app
-  if io.fileExists(__dirname..'/'..appFolder..'/service.lua') then
+  if io.fileExists(appFolderPath..'/service.lua') then
     local suc, ret = pcall(require, appFolder..'/service')
     if not suc then
       ac.log('App '..appID..' is not available: '..ret)
@@ -669,7 +709,7 @@ function system.addApp(appID, appFolder)
     app.service = ret
   end
   ac.log('App added: '..appID)
-  if io.fileExists(__dirname..'/'..appFolder..'/icon.lua') then
+  if io.fileExists(appFolderPath..'/icon.lua') then
     app.dynamicIcon = require(appFolder..'/icon')
   end
   if app.service and app.service ~= true then
@@ -749,7 +789,7 @@ function system.statusButton(icon, offsetX, isAvailable)
 end
 
 ---Sets or removes notification for the current app (call without arguments to remove notification).
----@param icon string|function @Icon, can be either a filename or a function to draw something custom.
+---@param icon string|function|? @Icon, can be either a filename or a function to draw something custom.
 ---@param content string? @Notification title.
 ---@param details string? @Notification message.
 ---@param silent boolean? @If silent, there won’t be a popup, just a notification in notifications list.
@@ -1150,6 +1190,53 @@ if ac.configValues({alignmentTest = false}).alignmentTest then
   return
 end
 
+local function addCarApp(id)
+  -- require('..\\..\\..\\..\\content\\cars\\ks_porsche_panamera\\extension\\car_info\\test')
+  -- if table.some(apps, function (item) return item.id == id end) then return end
+  -- local zip = io.load('%s/%s/extension/%s.zip' % {ac.getFolder(ac.FolderID.ContentCars), car:id(), id})
+  -- io.extractFromZipAsync('%s/%s/extension/%s.zip' % {ac.getFolder(ac.FolderID.ContentCars), car:id(), id}, __dirname..'/apps/__car_'..id, nil, function (err)
+  --   ac.warn(err)
+  -- end)
+  -- local manifest = ac.INIConfig.parse(io.loadFromZip(zip, 'manifest.ini') or '', ac.INIFormat.Extended)
+  -- local name = manifest:get('ABOUT', 'NAME', ''):trim()
+  -- if name == '' then return end
+  -- local appID = '__car_'..id
+  -- local iconData, scriptMain, scriptStatus, scriptService, scriptIcon = io.loadFromZip(zip, 'icon.png'), io.loadFromZip(zip, 'app.lua'), io.loadFromZip(zip, 'status.lua'), io.loadFromZip(zip, 'service.lua'), io.loadFromZip(zip, 'icon.lua')
+  -- local app = {
+  --   id = appID,
+  --   name = name,
+  --   displays = manifest:get('SCRIPTABLE_DISPLAY', 'DISPLAY', ac.INIConfig.OptionalList),
+  --   dynamicTextures = manifest:get('DYNAMIC_TEXTURE', 'RENDERING_CAMERA', ac.INIConfig.OptionalList),
+  --   icon = iconData and ui.decodeImage(iconData) or ui.Icons.AppWindow,
+  --   main = scriptMain and {scriptMain},
+  --   status = scriptStatus and {scriptStatus},
+  --   statusPriority = manifest:get('STATUS', 'BASE_PRIORITY', 0),
+  --   notificationPriority = manifest:get('NOTIFICATIONS', 'PRIORITY', 0),
+  -- }
+  -- appRunning = app
+  -- if scriptService then
+  --   local suc, ret = pcall(loadstring, scriptService)
+  --   if not suc then
+  --     ac.log('App '..appID..' is not available: '..ret)
+  --     return
+  --   end
+  --   app.service = ret
+  -- end
+  -- ac.log('Car app added: '..appID)
+  -- if scriptIcon then
+  --   local o, s = pcall(loadstring, scriptIcon)
+  --   if o then o, s = pcall(s) end
+  --   if o then app.dynamicIcon = s end
+  -- end
+  -- if app.service and app.service ~= true then
+  --   services[#services + 1] = app
+  -- end
+  -- if app.displays then
+  --   table.forEach(app.displays, function (d) ac.setDynamicTextureShift(d, 0) end)
+  -- end
+  -- apps[#apps + 1] = app
+  -- table.sort(apps, function (a, b) return a.name < b.name end)
+end
 
 -- Otherwise, at first `update()` would load list of apps and then load apps one by one to keep things running smooth.
 local appsToAdd
@@ -1163,16 +1250,30 @@ function system.update(dt)
       end
     end)
   elseif #appsToAdd > 0 then
-    system.addApp(appsToAdd[1], 'apps/'..appsToAdd[1])
+    system.addApp(appsToAdd[1], 'apps/'..appsToAdd[1]) 
     table.remove(appsToAdd, 1)
   else
+    for _, v in ipairs(ac.configValues({ ExclusiveApp = {} }).ExclusiveApp) do
+      io.loadAsync('%s/%s/extension/%s.zip' % {ac.getFolder(ac.FolderID.ContentCars), car:id(), v}, function (err, data)
+        if not err and data then
+          __util.native('_vaaa', data, v, __util.expectReply(function (err, dir)
+            system.addApp(v, dir)
+          end))
+        end
+      end)
+    end
+
     system.update = actualUpdate
     -- system.openApp('wallpapers')
     -- system.openApp('gallery')
-    -- system.openApp('radio')
+    -- system.openApp('radio') 
+    -- system.openApp('music')
+    -- system.openApp('youtube')
+    -- system.openApp('web')
+    -- system.openApp('test_dials')
   end
 
   ui.drawRectFilled(0, ui.windowSize(), rgbm.colors.black)
   ui.setCursor(ui.windowSize() / 2 - 30)
-  touchscreen.loading(60)
+  touchscreen.loading(60) 
 end

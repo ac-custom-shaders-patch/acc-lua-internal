@@ -9,27 +9,42 @@ ac.broadcastSharedEvent('$SmallTweaks.ReloadScript')
 DualSenseEmulator.available = true
 DualSenseEmulator.carIndex = __carIndex
 
-local imageFilename
+---@type {snackInstallURL: string, snackShortURL: string, snackFullURL: string}
+local config = JSON.parse(io.load('%s/config.json' % __dirname))
+local settings = ac.storage{ LastWorkingIP = '' }
+local localIPs = {}
+local selectedIP = 1
+
+web.get('https://acstuff.ru/j/config.json', function (err, response)
+  local update = JSON.parse(response and response.body or '')
+  if update.snackInstallURL and update.snackShortURL and update.snackFullURL and not table.same(update, config) then
+    ac.log('Config updated')
+    config = update
+    io.save('%s/config.json' % __dirname, JSON.stringify(update))
+  end
+end)
 
 local function launchApp()
   local serverPort = 46557
-  local filename = ac.getFolder(ac.FolderID.AppDataTemp)..'/accsp_gamepad_qr_'..tostring(serverPort)..'.png'
   
   ac.debug('Port', serverPort)
-  imageFilename = nil
-
-  if io.exists(filename) then
-    io.deleteFile(filename)
-    ui.unloadImage(filename)
-  end
+  table.clear(localIPs)
 
   os.runConsoleProcess({ 
     filename = ac.getFolder(ac.FolderID.ExtRoot)..'/internal/plugins/AcTools.GamepadServer.exe',
     workingDirectory = __dirname,
     environment = {
-      GAMEPAD_SERVER_IMAGE = filename,
-      GAMEPAD_SERVER_PORT = serverPort
+      GAMEPAD_SERVER_PORT = serverPort,
     },
+    dataCallback = function (err, data)
+      if not err and data:sub(1, 5) == 'ws://' then
+        localIPs[#localIPs + 1] = data:trim()
+        if localIPs[#localIPs] == settings.LastWorkingIP then
+          selectedIP = #localIPs
+        end
+      end
+      (err and ac.warn or ac.log)(data)
+    end,
     inheritEnvironment = true,
     terminateWithScript = true,
     timeout = 0
@@ -38,16 +53,10 @@ local function launchApp()
       ', stdout='..(data and data.stdout or '?'))
     setTimeout(launchApp, 3)
   end)
-
-  setTimeout(function ()
-    imageFilename = filename
-  end, 3)
 end
 
 launchApp()
 
-local snackShortURL = 'https://snack.expo.dev/@x4fab/gamepad-app'
-local snackURL = 'https://snack.expo.dev/@x4fab/gamepad-app?platform=mydevice&supportedPlatforms=mydevice&theme=dark&hideQueryParams=true'
 local qr = require('shared/utils/qr')
 local icons = ui.atlasIcons('res/icons.png', 2, 2, {
   Android = {1, 1},
@@ -99,9 +108,9 @@ local function installationGuide()
     installationGuideCur[#installationGuideCur + 1] = function ()
       installationGuideStep('Install Expo Go:', qr.encode('https://play.google.com/store/apps/details?id=host.exp.exponent'),
         function ()
-          installationGuideStep('Scan QR code with Expo Go:', qr.encode('exp://exp.host/@x4fab/gamepad-app+bmA8u2NOvS'),
+          installationGuideStep('Scan QR code with Expo Go:', qr.encode(config.snackInstallURL),
             function ()
-              installationGuideStep('Start Gamepad FX app and scan:', imageFilename)
+              installationGuideStep('Start Gamepad FX app and scan:', qr.encode(localIPs[selectedIP]))
             end)
         end)
     end
@@ -111,9 +120,9 @@ local function installationGuide()
     installationGuideCur[#installationGuideCur + 1] = function ()
       installationGuideStep('Install Expo Go:', qr.encode('https://itunes.apple.com/app/apple-store/id982107779'),
         function ()
-          installationGuideStep('Scan QR code with camera:', qr.encode('exp://exp.host/@x4fab/gamepad-app+bmA8u2NOvS'),
+          installationGuideStep('Scan QR code with camera:', qr.encode(config.snackInstallURL),
             function ()
-              installationGuideStep('Start Gamepad FX app and scan:', imageFilename)
+              installationGuideStep('Start Gamepad FX app and scan:', qr.encode(localIPs[selectedIP]))
             end)
         end)
     end
@@ -122,7 +131,7 @@ local function installationGuide()
   if ui.modernButton('Custom', vec2(w, 40), ui.ButtonFlags.None, icons.Expo) then
     installationGuideCur[#installationGuideCur + 1] = function ()
       ui.textWrapped('Get this Expo Snack written with React Native to run on your device somehow:')
-      if ui.textHyperlink(snackShortURL) then os.openURL(snackURL) end
+      if ui.textHyperlink(config.snackShortURL) then os.openURL(config.snackFullURL) end
       if ui.itemHovered() then ui.setTooltip('Click to open URL in browser') end
       ui.offsetCursorY(12)
     end
@@ -135,7 +144,26 @@ function script.drawUI()
     ui.drawRectFilled(vec2(0, 0), vec2(224, 272), rgbm(0, 0, 0, 0.4), 10)
     ui.drawRectFilled(vec2(12, 60), vec2(212, 260), rgbm.colors.white, 8)
     loadingAnimation(vec2(112, 160))
-    ui.drawImageRounded(imageFilename, vec2(12, 60), vec2(212, 260), 8)
+    ui.drawImageRounded(qr.encode(localIPs[selectedIP]), vec2(12, 60), vec2(212, 260), 8)
+
+    ui.backupCursor()
+    ui.setCursor(vec2(12, 60))
+    ui.invisibleButton('next', 200)
+    if ui.itemHovered() then
+      if #localIPs > 1 then
+        ui.setMouseCursor(ui.MouseCursor.Hand)
+        ui.setTooltip('%s (%d/%d)\nClick to try the next IP address' % {localIPs[selectedIP], selectedIP, #localIPs})
+        if ui.itemClicked(ui.MouseButton.Left, true) then
+          selectedIP = selectedIP + 1
+          if selectedIP > #localIPs then
+            selectedIP = 1
+          end
+        end
+      else
+        ui.setTooltip('%s (no other IPs detected)' % localIPs[selectedIP])
+      end
+    end
+    ui.restoreCursor()
 
     ui.pushFont(ui.Font.Title)
     ui.textAligned('Gamepad FX Mobile', 0.5, vec2(224, 38))
@@ -172,13 +200,20 @@ local aiIni = ac.INIConfig.carData(__carIndex, 'ai.ini')
 local rpmUp = aiIni:get('GEARS', 'UP', 9000)
 local rpmDown = math.max(aiIni:get('GEARS', 'DOWN', 6000), aiIni:get('GEARS', 'UP', 9000) / 2)
 local prevPressed = {}
+local wasOffline = true
 
 function script.update(dt)
-  ac.setDrawUIActive(IsOffline() and imageFilename and io.fileExists(imageFilename))
+  local offlineNow = IsOffline()
+  ac.setDrawUIActive(offlineNow and #localIPs > 0)
 
-  if #installationGuideCur > 0 and not IsOffline() then
+  if #installationGuideCur > 0 and not offlineNow then
     installationGuideDone = true
   end
+
+  if wasOffline and not offlineNow then
+    settings.LastWorkingIP = localIPs[selectedIP] or ''
+  end
+  wasOffline = offlineNow
 
   SM.lightBarColor[2] = math.saturateN(DualSenseEmulator.lightBarColor.r) * 255
   SM.lightBarColor[1] = math.saturateN(DualSenseEmulator.lightBarColor.g) * 255
