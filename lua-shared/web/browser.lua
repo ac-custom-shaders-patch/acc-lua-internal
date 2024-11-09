@@ -2174,6 +2174,63 @@ _drawDisposed = function(self, p1, p2, realScale)
   return drawSkip(self, p1, p2, 'Browser has been disposed', 'crash', self:crash() or getCrash(self))
 end
 
+---Access texture for drawing it directly using commands such as `ui.drawImage()`. Be careful: if second argument is `true`,
+---texture is flipped upside down! Also, doesn’t include secondary layer with popups (such as default non-CSS dropdown lists),
+---anything about non-CEF pages including error messages, or touchscreen touches.
+---@return ui.ImageSource?
+---@return boolean @If true, image should be drawn upside down.
+function webBrowser:texture()
+  sync(self)
+
+  self._alive = false
+  local h = self._blankHeldPage or self._blankPage
+  if h then
+    return nil, false
+  end
+
+  if connect.cefState ~= 0 then
+    self._mm.beAliveTime = sim.systemTime
+    return nil, false
+  end
+
+  if self._loadError then
+    return nil, false
+  end
+
+  awakeRender(self)
+
+  if self._mm.handle == 0 then
+    if backendUnresponsive(self) then
+      self._installingCEF = nil
+      self._mm.beFlags = 0
+    end
+    return nil, false
+  end
+
+  if not self._texture or self._lastHandle ~= self._mm.handle then
+    self._working = true
+    if self._installingCEF then self._installingCEF = nil end
+    if self._texture then self._texture:dispose() end
+    self._lastHandle = self._mm.handle
+    if self._settings.directRender then
+      self._texture = ui.SharedTexture(self._prefix..'.'..tonumber(self._mm.handle))
+      self._textureResolution = self._texture:resolution():clone():scale(1 / self._pixelDensity)
+    else
+      self._texture = ui.SharedTexture(self._mm.handle)
+    end
+    if self._invalidatingViewCount and self._texture:valid() then
+      self._invalidatingViewCount = nil
+    end
+  end
+
+  if not self._texture:valid() then
+    return nil, false
+  end
+  
+  self._alive = true
+  return self._texture, self._settings.directRender
+end
+
 ---Draw browser within given rect. Uses up to two `ui.drawImage()` calls inside (second one for possible popup layer like
 ---an opened dropdown list). If there is an error, draws an error message instead.
 ---@param p1 vec2 @Position for the upper left corner.

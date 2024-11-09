@@ -1,4 +1,4 @@
-local remoteExe = 'https://github.com/yt-dlp/yt-dlp/releases/download/2023.10.13/yt-dlp.exe'
+local remoteExe = 'https://github.com/yt-dlp/yt-dlp/releases/download/2024.10.07/yt-dlp.exe'
 
 ---Finds optimal format from list of formats returned by yt-dlp. Prefers something with both audio and video,
 ---looking for the largest file.

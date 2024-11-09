@@ -51,7 +51,7 @@ local searchProviders = {
 
 local function userURL(input)
   return input:regfind(urlRegex) and input
-    or (searchProviders[ac.load('.WebBrowser.searchProvider')] or searchProviders.ddg):format(input:urlEncode())
+    or (searchProviders[ac.load('.WebBrowser.searchProvider')] or searchProviders.ddg).query:format(input:urlEncode())
 end
 
 local function searchIcon()

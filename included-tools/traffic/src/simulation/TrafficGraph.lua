@@ -165,13 +165,16 @@ function TrafficGraph:initialize(lanes, intersections)
   self._edgesFromIDMap = {}
   for i = 1, #self._gEdges do
     local edge = self._gEdges[i]
-    local fromPos = self:getGPos(edge.fromID)
-    local toPos = self:getGPos(edge.toID)
-    edge.dir = toPos:clone():sub(fromPos):normalize()
-
-    table.getOrCreate(self._edgesFromIDMap, edge.fromID, Array):push(edge)
     if edge.fromID ~= 0 and edge.toID ~= 0 then
-      self._graph:addEdge(edge.fromID, edge.toID, fromPos:distance(toPos))
+      local fromPos = self:getGPos(edge.fromID)
+      local toPos = self:getGPos(edge.toID)
+      print(i, edge.toID, edge.fromID, edge.lane.name, self._gVertices)
+      edge.dir = toPos:clone():sub(fromPos):normalize()
+
+      table.getOrCreate(self._edgesFromIDMap, edge.fromID, Array):push(edge)
+      if edge.fromID ~= 0 and edge.toID ~= 0 then
+        self._graph:addEdge(edge.fromID, edge.toID, fromPos:distance(toPos))
+      end
     end
   end
 end

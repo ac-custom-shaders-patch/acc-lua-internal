@@ -1,10 +1,12 @@
-local PHYSICS_DEBUG_PICK_CARS = false  -- set to `true` to be able to activate lines for certain cars
+local PHYSICS_DEBUG_PICK_CARS = false -- set to `true` to be able to activate lines for certain cars
 
 local sim = ac.getSim()
 local defaultCar = ac.getCar(0)
 local currentMode = ac.VAODebugMode.Active
 local debugLines = { types = {}, cars = { [1] = true } }
-local lightSettings = table.chain({filter = '?', count = 10, distance = 100, flags = {outline = true, bbox = true, bsphere = false, text = true}, active = false, dirty = true}, stringify.tryParse(ac.storage.debugLightsSettings, {}))
+local lightSettings = table.chain(
+  { filter = '?', count = 10, distance = 100, flags = { outline = true, bbox = true, bsphere = false, text = true }, active = false, dirty = true },
+  stringify.tryParse(ac.storage.debugLightsSettings, {}))
 lightSettings.active = false
 
 local debugWeatherControl = ac.connect({
@@ -41,7 +43,7 @@ local function syncState()
 
   local carIndex = math.max(0, sim.focusedCar)
   ac.setPhysicsDebugLines(c ~= 0 and t or 0, PHYSICS_DEBUG_PICK_CARS and c or bit.lshift(1, carIndex))
-  
+
   if lightSettings.dirty then
     lightSettings.dirty = false
     if lightSettings.active then
@@ -61,12 +63,12 @@ local function syncState()
 end
 
 local function controlSceneDetail(label, value, postfix)
-  ui.text(label..': ')
+  ui.text(label .. ': ')
   ui.sameLine(0, 0)
   ui.copyable(value)
   if postfix then
     ui.sameLine(0, 0)
-    ui.text(' '..postfix)
+    ui.text(' ' .. postfix)
   end
 end
 
@@ -141,7 +143,10 @@ local function controlRender()
   if ui.radioButton('Default', currentMode == ac.VAODebugMode.Active) then currentMode = ac.VAODebugMode.Active end
   if ui.radioButton('Disable VAO', currentMode == ac.VAODebugMode.Inactive) then currentMode = ac.VAODebugMode.Inactive end
   if ui.radioButton('VAO only', currentMode == ac.VAODebugMode.VAOOnly) then currentMode = ac.VAODebugMode.VAOOnly end
-  if ui.radioButton('Normals', currentMode == ac.VAODebugMode.ShowNormals) then currentMode = ac.VAODebugMode.ShowNormals end
+  if ui.radioButton('Normals', currentMode == ac.VAODebugMode.ShowNormals) then
+    currentMode = ac.VAODebugMode
+        .ShowNormals
+  end
   ac.setVAOMode(currentMode)
 
 
@@ -151,7 +156,7 @@ local function controlRender()
 end
 
 local function controlFocus()
-  ui.childWindow('##cars', ui.availableSpace(), function ()
+  ui.childWindow('##cars', ui.availableSpace(), function()
     local s = ac.getSession(sim.currentSessionIndex)
     if s then
       for i, v in ipairs(s.leaderboard) do
@@ -161,10 +166,10 @@ local function controlFocus()
       end
     else
       ---@type ac.StateCar[]
-      local cars = table.range(sim.carsCount, function (index, callbackData)
+      local cars = table.range(sim.carsCount, function(index, callbackData)
         return ac.getCar(index - 1)
       end)
-      table.sort(cars, function (a, b)
+      table.sort(cars, function(a, b)
         return a.racePosition < b.racePosition
       end)
       for i = 1, sim.carsCount do
@@ -230,8 +235,10 @@ end
 local function controlVRAM()
   local vram = ac.getVRAMConsumption()
   if vram then
-    ui.text(string.format('Usage:\n%.0f out of %.0f MB (%.3f%%)', vram.usage, vram.budget, 100 * vram.usage / vram.budget))
-    ui.text(string.format('Reserved:\n%.0f out of %.0f MB (%.3f%%)', vram.reserved, vram.availableForReservation, 100 * vram.reserved / vram.availableForReservation))
+    ui.text(string.format('Usage:\n%.0f out of %.0f MB (%.3f%%)', vram.usage, vram.budget, 100 * vram.usage / vram
+      .budget))
+    ui.text(string.format('Reserved:\n%.0f out of %.0f MB (%.3f%%)', vram.reserved, vram.availableForReservation,
+      100 * vram.reserved / vram.availableForReservation))
     ac.debug('vram.usage', vram.usage)
   else
     ui.textWrapped('VRAM stats are not available on this system')
@@ -255,17 +262,18 @@ local awakeFor = 0
 local _savedStates_cache = nil
 
 ---@return {name: string?, data: binary}[]
-local function getSavedStates()  
+local function getSavedStates()
   if _savedStates_cache == nil then
-    savedStateFilename = ac.getFolder(ac.FolderID.ExtCfgState)..'/car_states/'..ac.getTrackID()..'__'..ac.getCarID(0)..'.bin'
+    savedStateFilename = ac.getFolder(ac.FolderID.ExtCfgState) ..
+        '/car_states/' .. ac.getTrackID() .. '__' .. ac.getCarID(0) .. '.bin'
     if not io.fileExists(savedStateFilename) then
-      io.createDir(ac.getFolder(ac.FolderID.ExtCfgState)..'/car_states')
+      io.createDir(ac.getFolder(ac.FolderID.ExtCfgState) .. '/car_states')
       _savedStates_cache = {}
     else
       _savedStates_cache = stringify.binary.tryParse(io.load(savedStateFilename), {})
       if #_savedStates_cache > 0 and type(_savedStates_cache[1]) == 'string' then
-        _savedStates_cache = table.map(_savedStates_cache, function (v, i)
-          return {data = v, name = nil}
+        _savedStates_cache = table.map(_savedStates_cache, function(v, i)
+          return { data = v, name = nil }
         end)
       end
     end
@@ -283,18 +291,18 @@ end
 
 local btnSaveState = ac.ControlButton('app.CspDebug/Record car state')
 local btnLoadState = ac.ControlButton('app.CspDebug/Load last car state')
-btnSaveState:onPressed(function ()
+btnSaveState:onPressed(function()
   if #getSavedStates() >= 99 then
     ui.toast(ui.Icons.Warning, 'Too many states saved, use CSP Debug app to remove old ones')
     return
   end
-  ac.saveCarStateAsync(function (err, data)
+  ac.saveCarStateAsync(function(err, data)
     if err then
-      ui.toast(ui.Icons.Warning, 'Failed to save car state: '..err)
+      ui.toast(ui.Icons.Warning, 'Failed to save car state: ' .. err)
       return
     end
     local savedStates = getSavedStates()
-    table.insert(savedStates, {name = nil, data = data})
+    table.insert(savedStates, { name = nil, data = data })
     ui.toast(ui.Icons.Save, 'Car state saved')
     io.save(savedStateFilename, stringify.binary(savedStates))
 
@@ -316,7 +324,7 @@ btnSaveState:onPressed(function ()
     -- end
   end)
 end)
-btnLoadState:onPressed(function ()
+btnLoadState:onPressed(function()
   local savedStates = getSavedStates()
   if #savedStates > 0 then
     if not ac.loadCarState(savedStates[#savedStates].data, 30) then
@@ -374,7 +382,7 @@ local function controlCarUtils()
   ui.offsetCursorY(12)
   ui.text('Helpers:')
 
-  if not physics.allowed() then 
+  if not physics.allowed() then
     if ui.button('Reset', vec2(w, 0)) then
       ac.resetCar()
     end
@@ -414,13 +422,13 @@ local function controlCarUtils()
       clearInterval(clickToTeleport)
       clickToTeleport = nil
     else
-      clickToTeleport = setInterval(function ()
+      clickToTeleport = setInterval(function()
         if ac.getUI().isMouseLeftKeyClicked and not ac.getUI().wantCaptureMouse then
           local pos = vec3()
           if render.createMouseRay():physics(pos) ~= -1 then
             physics.setCarPosition(0, pos, -ac.getSim().cameraLook)
           end
-          
+
           clearInterval(clickToTeleport)
           clickToTeleport = nil
         end
@@ -459,18 +467,19 @@ local function controlCarUtils()
   for i = 1, #savedStates do
     local state = savedStates[i]
     ui.pushID(i)
-    if ui.button(state.name or ('State #'..i), vec2(-48, 0)) then
+    if ui.button(state.name or ('State #' .. i), vec2(-48, 0)) then
       if not ac.loadCarState(state.data, 30) then
         ui.toast(ui.Icons.Warning, 'Can’t restore car state')
       end
     end
     if ui.itemHovered() then
-      ui.setTooltip(i == #savedStates and btnLoadState:boundTo() and 'Load car state (%s)' % btnLoadState:boundTo() or 'Load car state')
+      ui.setTooltip(i == #savedStates and btnLoadState:boundTo() and 'Load car state (%s)' % btnLoadState:boundTo() or
+        'Load car state')
     end
     ui.sameLine(0, 4)
     if ui.iconButton(ui.Icons.Edit) then
       local edit = state
-      ui.modalPrompt('Rename', 'New name for car state:', edit.name or '', function (value)
+      ui.modalPrompt('Rename', 'New name for car state:', edit.name or '', function(value)
         if value then
           state.name = value
           io.save(savedStateFilename, stringify.binary(savedStates))
@@ -487,19 +496,19 @@ local function controlCarUtils()
     local removed = table.remove(savedStates, toRemove)
     io.save(savedStateFilename, stringify.binary(savedStates))
     if removed then
-      ui.toast(ui.Icons.Confirm, 'Car state removed', function ()
+      ui.toast(ui.Icons.Confirm, 'Car state removed', function()
         table.insert(savedStates, toRemove, removed)
         io.save(savedStateFilename, stringify.binary(savedStates))
       end)
     end
   end
   if ui.button('Save state', vec2(ui.availableSpaceX(), 0)) then
-    ac.saveCarStateAsync(function (err, data)
+    ac.saveCarStateAsync(function(err, data)
       if err then
-        ui.toast(ui.Icons.Warning, 'Failed to save car state: '..err)
+        ui.toast(ui.Icons.Warning, 'Failed to save car state: ' .. err)
         return
       end
-      savedStates[#savedStates + 1] = {name = nil, data = data}
+      savedStates[#savedStates + 1] = { name = nil, data = data }
       ui.toast(ui.Icons.Save, 'Car state saved')
       io.save(savedStateFilename, stringify.binary(savedStates))
     end)
@@ -510,7 +519,7 @@ local function controlCarUtils()
 end
 
 local function controlTime()
-  ui.text(os.dateGlobal('%Y-%m-%d %H:%M:%S', sim.timestamp)..' (x'..sim.timeMultiplier..')')
+  ui.text(os.dateGlobal('%Y-%m-%d %H:%M:%S', sim.timestamp) .. ' (x' .. sim.timeMultiplier .. ')')
 
   if sim.isOnlineRace then
     return
@@ -518,85 +527,105 @@ local function controlTime()
 
   ui.offsetCursorY(12)
   ui.text('Offset:')
-  if ui.smallButton('−12h') then ac.setWeatherTimeOffset(-12 * 60 * 60, true) end ui.sameLine(0, 2)
-  if ui.smallButton('−4h') then ac.setWeatherTimeOffset(-4 * 60 * 60, true) end ui.sameLine(0, 2)
-  if ui.smallButton('−1h') then ac.setWeatherTimeOffset(-1 * 60 * 60, true) end ui.sameLine(0, 2)
-  if ui.smallButton('−20m') then ac.setWeatherTimeOffset(-20 * 60, true) end ui.sameLine(0, 2)
-  if ui.smallButton('−1m') then ac.setWeatherTimeOffset(-1 * 60, true) end ui.sameLine(0, 2)
+  if ui.smallButton('−12h') then ac.setWeatherTimeOffset(-12 * 60 * 60, true) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('−4h') then ac.setWeatherTimeOffset(-4 * 60 * 60, true) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('−1h') then ac.setWeatherTimeOffset(-1 * 60 * 60, true) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('−20m') then ac.setWeatherTimeOffset(-20 * 60, true) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('−1m') then ac.setWeatherTimeOffset(-1 * 60, true) end
+  ui.sameLine(0, 2)
   if ui.smallButton('−5s') then ac.setWeatherTimeOffset(-5, true) end --ui.sameLine(0, 2)
-  if ui.smallButton('+12h') then ac.setWeatherTimeOffset(12 * 60 * 60, true) end ui.sameLine(0, 2)
-  if ui.smallButton('+4h') then ac.setWeatherTimeOffset(4 * 60 * 60, true) end ui.sameLine(0, 2)
-  if ui.smallButton('+1h') then ac.setWeatherTimeOffset(1 * 60 * 60, true) end ui.sameLine(0, 2)
-  if ui.smallButton('+20m') then ac.setWeatherTimeOffset(20 * 60, true) end ui.sameLine(0, 2)
-  if ui.smallButton('+1m') then ac.setWeatherTimeOffset(1 * 60, true) end ui.sameLine(0, 2)
+  if ui.smallButton('+12h') then ac.setWeatherTimeOffset(12 * 60 * 60, true) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('+4h') then ac.setWeatherTimeOffset(4 * 60 * 60, true) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('+1h') then ac.setWeatherTimeOffset(1 * 60 * 60, true) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('+20m') then ac.setWeatherTimeOffset(20 * 60, true) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('+1m') then ac.setWeatherTimeOffset(1 * 60, true) end
+  ui.sameLine(0, 2)
   if ui.smallButton('+5s') then ac.setWeatherTimeOffset(5, true) end --ui.sameLine(0, 2)
 
   ui.pushStyleVar(ui.StyleVar.FramePadding, vec2(3.5, 0))
-  if ui.smallButton('−day') then ac.setWeatherTimeOffset(-24 * 60 * 60, true) end ui.sameLine(0, 2)
-  if ui.smallButton('−week') then ac.setWeatherTimeOffset(-7 * 24 * 60 * 60, true) end ui.sameLine(0, 2)
-  if ui.smallButton('−month') then ac.setWeatherTimeOffset(-30 * 24 * 60 * 60, true) end ui.sameLine(0, 2)
+  if ui.smallButton('−day') then ac.setWeatherTimeOffset(-24 * 60 * 60, true) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('−week') then ac.setWeatherTimeOffset(-7 * 24 * 60 * 60, true) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('−month') then ac.setWeatherTimeOffset(-30 * 24 * 60 * 60, true) end
+  ui.sameLine(0, 2)
   if ui.smallButton('−year') then ac.setWeatherTimeOffset(-365 * 24 * 60 * 60, true) end --ui.sameLine(0, 2)
-  if ui.smallButton('+day') then ac.setWeatherTimeOffset(24 * 60 * 60, true) end ui.sameLine(0, 2)
-  if ui.smallButton('+week') then ac.setWeatherTimeOffset(7 * 24 * 60 * 60, true) end ui.sameLine(0, 2)
-  if ui.smallButton('+month') then ac.setWeatherTimeOffset(30 * 24 * 60 * 60, true) end ui.sameLine(0, 2)
+  if ui.smallButton('+day') then ac.setWeatherTimeOffset(24 * 60 * 60, true) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('+week') then ac.setWeatherTimeOffset(7 * 24 * 60 * 60, true) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('+month') then ac.setWeatherTimeOffset(30 * 24 * 60 * 60, true) end
+  ui.sameLine(0, 2)
   if ui.smallButton('+year') then ac.setWeatherTimeOffset(365 * 24 * 60 * 60, true) end --ui.sameLine(0, 2)
   ui.popStyleVar()
 
   ui.offsetCursorY(12)
   ui.text('Time flow:')
   ui.pushStyleVar(ui.StyleVar.FramePadding, vec2(6, 0))
-  if ui.smallButton('0x') then ac.setWeatherTimeMultiplier(0) end ui.sameLine(0, 2)
-  if ui.smallButton('1x') then ac.setWeatherTimeMultiplier(1) end ui.sameLine(0, 2)
-  if ui.smallButton('60x') then ac.setWeatherTimeMultiplier(60) end ui.sameLine(0, 2)
-  if ui.smallButton('600x') then ac.setWeatherTimeMultiplier(600) end ui.sameLine(0, 2)
+  if ui.smallButton('0x') then ac.setWeatherTimeMultiplier(0) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('1x') then ac.setWeatherTimeMultiplier(1) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('60x') then ac.setWeatherTimeMultiplier(60) end
+  ui.sameLine(0, 2)
+  if ui.smallButton('600x') then ac.setWeatherTimeMultiplier(600) end
+  ui.sameLine(0, 2)
   if ui.smallButton('6000x') then ac.setWeatherTimeMultiplier(6000) end
   ui.popStyleVar()
 end
 
 local currentConditions = ac.ConditionsSet()
 local weatherTypes = {
-  { 'Clear', 15 },
-  { 'Few clouds', 16 },
+  { 'Clear',            15 },
+  { 'Few clouds',       16 },
   { 'Scattered clouds', 17 },
-  { 'Broken clouds', 18 },
-  { 'Overcast clouds', 19 },
+  { 'Broken clouds',    18 },
+  { 'Overcast clouds',  19 },
   false,
   { 'Mist', 21 },
-  { 'Fog', 20 },
+  { 'Fog',  20 },
   false,
-  { 'Drizzle (light)', 3 },
-  { 'Drizzle (medium)', 4 },
-  { 'Drizzle (heavy)', 5 },
-  { 'Rain (light)', 6 },
-  { 'Rain (medium)', 7 },
-  { 'Rain (heavy)', 8 },
-  { 'Thunderstorm (light)', 0 },
+  { 'Drizzle (light)',       3 },
+  { 'Drizzle (medium)',      4 },
+  { 'Drizzle (heavy)',       5 },
+  { 'Rain (light)',          6 },
+  { 'Rain (medium)',         7 },
+  { 'Rain (heavy)',          8 },
+  { 'Thunderstorm (light)',  0 },
   { 'Thunderstorm (medium)', 1 },
-  { 'Thunderstorm (heavy)', 2 },
-  { 'Sleet (light)', 12 },
-  { 'Sleet (medium)', 13 },
-  { 'Sleet (heavy)', 14 },
-  { 'Snow (light)', 9 },
-  { 'Snow (medium)', 10 },
-  { 'Snow (heavy)', 11 },
+  { 'Thunderstorm (heavy)',  2 },
+  { 'Sleet (light)',         12 },
+  { 'Sleet (medium)',        13 },
+  { 'Sleet (heavy)',         14 },
+  { 'Snow (light)',          9 },
+  { 'Snow (medium)',         10 },
+  { 'Snow (heavy)',          11 },
   false,
-  { 'Tornado', 27 },
+  { 'Tornado',   27 },
   { 'Hurricane', 28 },
   false,
-  { 'Smoke', 22 },
-  { 'Haze', 23 },
-  { 'Sand', 24 },
-  { 'Dust', 25 },
+  { 'Smoke',   22 },
+  { 'Haze',    23 },
+  { 'Sand',    24 },
+  { 'Dust',    25 },
   { 'Squalls', 26 },
-  { 'Cold', 29 },
-  { 'Hot', 30 },
-  { 'Windy', 31 },
-  { 'Hail', 32 }
+  { 'Cold',    29 },
+  { 'Hot',     30 },
+  { 'Windy',   31 },
+  { 'Hail',    32 }
 }
 
 local function controlWeatherSelector(current, callback)
   ui.setNextItemWidth(ui.availableSpaceX())
-  ui.combo('##Types', 'Selected: '..(current and current[1] or '?'), ui.ComboFlags.HeightLarge, function ()
+  ui.combo('##Types', 'Selected: ' .. (current and current[1] or '?'), ui.ComboFlags.HeightLarge, function()
     for _, k in ipairs(weatherTypes) do
       if not k then
         ui.separator()
@@ -608,27 +637,30 @@ local function controlWeatherSelector(current, callback)
     end
   end)
 end
- 
+
 local function controlUI()
   for i, v in ipairs(ac.getAppWindows()) do
-    ui.text('%s [%s]: %s, P=%s, S=%s, L=%s' % {v.name, v.title, not v.visible and 'hidden' or v.collapsed and 'collapsed' or v.pinned and 'pinned' or 'visible', v.position, v.size, v.layer})
+    ui.text('%s [%s]: %s, P=%s, S=%s, L=%s' %
+      { v.name, v.title, not v.visible and 'hidden' or v.collapsed and 'collapsed' or v.pinned and 'pinned' or 'visible',
+        v
+            .position, v.size, v.layer })
   end
 end
 
 local function controlWeather()
   ac.getConditionsSetTo(currentConditions)
 
-  local current = table.findFirst(weatherTypes, function (item, index, callbackData)
+  local current = table.findFirst(weatherTypes, function(item, index, callbackData)
     return item and item[2] == currentConditions.currentType
   end)
 
   if sim.isOnlineRace then
-    ui.text('Weather: '..(current and current[1] or '?'))
+    ui.text('Weather: ' .. (current and current[1] or '?'))
     return
   end
 
   if sim.isReplayActive then
-    controlWeatherSelector(current, function (value)
+    controlWeatherSelector(current, function(value)
       currentConditions.currentType = value
       currentConditions.upcomingType = value
       currentConditions.transition = 0
@@ -645,21 +677,26 @@ local function controlWeather()
     currentConditions.wind.speedTo = currentConditions.wind.speedFrom
     ui.separator()
     ui.setNextItemWidth(ui.availableSpaceX() / 2 - 2)
-    currentConditions.humidity = ui.slider('##humidity', currentConditions.humidity * 100, 0, 100, 'Humidity: %.0f%%') / 100
+    currentConditions.humidity = ui.slider('##humidity', currentConditions.humidity * 100, 0, 100, 'Humidity: %.0f%%') /
+        100
     ui.sameLine(0, 4)
     ui.setNextItemWidth(-0.1)
-    currentConditions.pressure = ui.slider('##pressure', currentConditions.pressure / 1e3, 100, 120, 'Pressure: %.0f hpa') * 1e3
+    currentConditions.pressure = ui.slider('##pressure', currentConditions.pressure / 1e3, 100, 120, 'Pressure: %.0f hpa') *
+        1e3
     if ac.isModuleActive(ac.CSPModuleID.RainFX) then
       ui.separator()
-      currentConditions.rainIntensity = ui.slider('##raini', currentConditions.rainIntensity * 100, 0, 100, 'Rain: %.1f%%', 2) / 100
+      currentConditions.rainIntensity = ui.slider('##raini', currentConditions.rainIntensity * 100, 0, 100,
+        'Rain: %.1f%%', 2) / 100
       if ui.itemHovered() then
         ui.setTooltip(require('shared/sim/weather').rainDescription(debugWeatherControlExt.rainIntensity))
       end
       ui.setNextItemWidth(ui.availableSpaceX() / 2 - 2)
-      currentConditions.rainWetness = ui.slider('##rainw', currentConditions.rainWetness * 100, 0, 100, 'Wetness: %.1f%%', 2) / 100
+      currentConditions.rainWetness = ui.slider('##rainw', currentConditions.rainWetness * 100, 0, 100, 'Wetness: %.1f%%',
+        2) / 100
       ui.sameLine(0, 4)
       ui.setNextItemWidth(-0.1)
-      currentConditions.rainWater = ui.slider('##raint', currentConditions.rainWater * 100, 0, 100, 'Water: %.1f%%', 2) / 100
+      currentConditions.rainWater = ui.slider('##raint', currentConditions.rainWater * 100, 0, 100, 'Water: %.1f%%', 2) /
+          100
     end
     ui.endGroup()
 
@@ -679,7 +716,7 @@ local function controlWeather()
     return
   end
 
-  controlWeatherSelector(current, function (value)
+  controlWeatherSelector(current, function(value)
     debugWeatherControl.weatherType = value
   end)
   if debugWeatherControl.weatherType == 255 then
@@ -698,25 +735,31 @@ local function controlWeather()
   debugWeatherControlExt.windDirection = ui.slider('##windd', debugWeatherControlExt.windDirection, 0, 360, 'Wind: %.0f°')
   ui.sameLine(0, 4)
   ui.setNextItemWidth(-0.1)
-  debugWeatherControlExt.windSpeedFrom = ui.slider('##winds', debugWeatherControlExt.windSpeedFrom, 0, 100, '%.1f km/h', 2)
+  debugWeatherControlExt.windSpeedFrom = ui.slider('##winds', debugWeatherControlExt.windSpeedFrom, 0, 100, '%.1f km/h',
+    2)
   debugWeatherControlExt.windSpeedTo = debugWeatherControlExt.windSpeedFrom
   ui.separator()
   ui.setNextItemWidth(ui.availableSpaceX() / 2 - 2)
-  debugWeatherControlExt.humidity = math.max(ui.slider('##humidity', debugWeatherControlExt.humidity * 100, 0, 100, 'Humidity: %.0f%%') / 100, 1e-30)
+  debugWeatherControlExt.humidity = math.max(
+    ui.slider('##humidity', debugWeatherControlExt.humidity * 100, 0, 100, 'Humidity: %.0f%%') / 100, 1e-30)
   ui.sameLine(0, 4)
   ui.setNextItemWidth(-0.1)
-  debugWeatherControlExt.pressure = ui.slider('##pressure', debugWeatherControlExt.pressure / 1e3, 80, 120, 'Pressure: %.0f kPa') * 1e3
+  debugWeatherControlExt.pressure = ui.slider('##pressure', debugWeatherControlExt.pressure / 1e3, 80, 120,
+    'Pressure: %.0f kPa') * 1e3
   if ac.isModuleActive(ac.CSPModuleID.RainFX) then
     ui.separator()
-    debugWeatherControlExt.rainIntensity = ui.slider('##raini', debugWeatherControlExt.rainIntensity * 100, 0, 100, 'Rain: %.1f%%', 2) / 100
+    debugWeatherControlExt.rainIntensity = ui.slider('##raini', debugWeatherControlExt.rainIntensity * 100, 0, 100,
+      'Rain: %.1f%%', 2) / 100
     if ui.itemHovered() then
       ui.setTooltip(require('shared/sim/weather').rainDescription(debugWeatherControlExt.rainIntensity))
     end
     ui.setNextItemWidth(ui.availableSpaceX() / 2 - 2)
-    debugWeatherControlExt.rainWetness = ui.slider('##rainw', debugWeatherControlExt.rainWetness * 100, 0, 100, 'Wetness: %.1f%%', 2) / 100
+    debugWeatherControlExt.rainWetness = ui.slider('##rainw', debugWeatherControlExt.rainWetness * 100, 0, 100,
+      'Wetness: %.1f%%', 2) / 100
     ui.sameLine(0, 4)
     ui.setNextItemWidth(-0.1)
-    debugWeatherControlExt.rainWater = ui.slider('##raint', debugWeatherControlExt.rainWater * 100, 0, 100, 'Water: %.1f%%', 2) / 100
+    debugWeatherControlExt.rainWater = ui.slider('##raint', debugWeatherControlExt.rainWater * 100, 0, 100,
+      'Water: %.1f%%', 2) / 100
   end
   ui.endGroup()
   if ui.itemEdited() then
@@ -744,7 +787,7 @@ local function drawTyre(tyre, p1, p2)
 end
 
 math.randomseed(1)
-local colorsShuffled = table.range(8, function ()
+local colorsShuffled = table.range(8, function()
   return rgbm.new(hsv(math.random() * 360, 1, 1):rgb(), 1)
 end)
 
@@ -773,7 +816,7 @@ local function controlPhysicsDebugLines()
     ui.text('Types:')
   end
   if not physicsDebugLines then
-    physicsDebugLines = table.map(ac.PhysicsDebugLines, function (item, index, callbackData)
+    physicsDebugLines = table.map(ac.PhysicsDebugLines, function(item, index, callbackData)
       return index
     end)
     table.sort(physicsDebugLines)
@@ -800,8 +843,8 @@ local function controlPhysicsDebugLines()
     ac.debugRainRacingLine(isRacingLineDebugActive)
   end
   if ui.checkbox('Colliders', isCollidersDebugActive or false) then
-    if isCollidersDebugActive == nil then      
-      render.on('main.root.transparent', function ()
+    if isCollidersDebugActive == nil then
+      render.on('main.root.transparent', function()
         if not isCollidersDebugActive then return end
         for i = 0, 2 do
           local focused = ac.getCar.ordered(i)
@@ -814,12 +857,12 @@ local function controlPhysicsDebugLines()
             transform = focused.bodyTransform,
             textures = {},
             values = {},
-            shader = [[float4 main(PS_IN pin) { 
+            shader = [[float4 main(PS_IN pin) {
               float g = dot(normalize(pin.NormalW), normalize(pin.PosC));
-              return float4(float3(saturate(-g), saturate(g), 1) * gWhiteRefPoint, pow(1 - abs(g), 2)); 
+              return float4(float3(saturate(-g), saturate(g), 1) * gWhiteRefPoint, pow(1 - abs(g), 2));
             }]]
           })
-  
+
           render.setTransform(focused.transform, true)
           for i, v in ipairs(ac.getCarColliders(focused.index, not isCollidersDebugOriginal)) do
             local c = colorsShuffled[(i - 1) % #colorsShuffled + 1]
@@ -845,7 +888,7 @@ local function controlPhysicsDebugLines()
 end
 
 local function tabItem(label, fn)
-  ui.tabItem(label, 0, function ()
+  ui.tabItem(label, 0, function()
     ui.offsetCursorX(8)
     local s = ui.availableSpace()
     s.x = s.x - 8
@@ -905,7 +948,7 @@ local function updateGrabLink(car, link, dt)
   lastDragLine = lastDragLine + 1
 end
 
-dragTooltipFn = function ()
+dragTooltipFn = function()
   if dragAround and grabActiveLink then
     ui.setTooltip('Force: %.0f N\nUse [ and ] buttons to change the force' % grabActiveLink.force)
   end
@@ -926,7 +969,7 @@ function script.update(dt)
   if dragAround or applyPressure ~= 0 then
     if workerData.instanceKey == 0 then
       workerData.instanceKey = math.random(1, 1e9)
-      physics.startPhysicsWorker('CarDebugWorker', workerData.instanceKey, function (err)
+      physics.startPhysicsWorker('CarDebugWorker', workerData.instanceKey, function(err)
         ac.log('CarDebugWorker stopped', err)
       end)
     end
@@ -1030,7 +1073,8 @@ local function drawLink(link, active)
   render.debugLine(link.posW, link.target, rgbm.colors.black)
   render.setDepthMode(render.DepthMode.Off)
   render.circle(link.posW, sim.cameraPosition - link.posW, 0.05, active and rgbm.colors.lime or rgbm.colors.gray)
-  render.circle(link.target, sim.cameraPosition - link.target, 0.05, active and rgbm.colors.lime or link.hovered and rgbm.colors.yellow or rgbm.colors.gray)
+  render.circle(link.target, sim.cameraPosition - link.target, 0.05,
+    active and rgbm.colors.lime or link.hovered and rgbm.colors.yellow or rgbm.colors.gray)
 end
 
 function script.draw3D()
@@ -1046,12 +1090,13 @@ function script.draw3D()
   end
 end
 
-local TAB_FLAGS = const(ui.TabBarFlags.TabListPopupButton + ui.TabBarFlags.FittingPolicyScroll + ui.TabBarFlags.NoTabListScrollingButtons + ui.TabBarFlags.SaveSelected)
+local TAB_FLAGS = const(ui.TabBarFlags.TabListPopupButton + ui.TabBarFlags.FittingPolicyScroll +
+  ui.TabBarFlags.NoTabListScrollingButtons + ui.TabBarFlags.SaveSelected)
 
 function script.windowMain(dt)
   ui.pushFont(ui.Font.Small)
 
-  ui.tabBar('tabs', TAB_FLAGS, function ()
+  ui.tabBar('tabs', TAB_FLAGS, function()
     tabItem('Details', controlSceneDetails)
     tabItem('Car', controlCarUtils)
     if sim.carsCount > 1 then
@@ -1071,8 +1116,11 @@ function script.windowMain(dt)
   syncState()
 end
 
-local cfgVideo = ac.INIConfig.load(ac.getFolder(ac.FolderID.Cfg)..'\\video.ini', ac.INIFormat.Default)
-local cfgGraphics = ac.INIConfig.load(ac.getFolder(ac.FolderID.Root)..'\\system\\cfg\\graphics.ini', ac.INIFormat.Default)
+local cfgVideo = ac.INIConfig.load(ac.getFolder(ac.FolderID.Cfg) .. '\\video.ini', ac.INIFormat.Default)
+local cfgGraphics = ac.INIConfig.load(ac.getFolder(ac.FolderID.Root) .. '\\system\\cfg\\graphics.ini',
+  ac.INIFormat.Default)
+local cfgProximityIndicator = ac.INIConfig.load(ac.getFolder(ac.FolderID.Root) .. '\\system\\cfg\\proximity_indicator.ini',
+  ac.INIFormat.Default)
 
 local function applyChange(section, key, value)
   cfgVideo:setAndSave(section, key, value)
@@ -1107,18 +1155,18 @@ function script.windowSettings(dt)
     applyChange('ASSETTOCORSA', 'WORLD_DETAIL', math.round(newValue))
   end
 
-  local shadows = {0, 32, 64, 128, 256, 512, 1024, 2048, 3072, 4096, 6144, 8192}
+  local shadows = { 0, 32, 64, 128, 256, 512, 1024, 2048, 3072, 4096, 6144, 8192 }
   newValue = table.indexOf(shadows, cfgVideo:get('VIDEO', 'SHADOW_MAP_SIZE', 0)) or 1
   newValue = ui.slider('##qsm', newValue, 1, #shadows,
-    string.format('Shadows: %s', newValue == 1 and 'off' or (shadows[newValue] or 0)..'x'))
+    string.format('Shadows: %s', newValue == 1 and 'off' or (shadows[newValue] or 0) .. 'x'))
   if ui.itemEdited() then
     applyChange('VIDEO', 'SHADOW_MAP_SIZE', shadows[math.round(newValue)] or 0)
   end
 
-  local levels = {0, 2, 4, 8, 16}
+  local levels = { 0, 2, 4, 8, 16 }
   newValue = table.indexOf(levels, cfgVideo:get('VIDEO', 'ANISOTROPIC', 0)) or 1
   newValue = ui.slider('##qan', newValue, 1, #levels,
-    string.format('Anisotropic filtering: %s', newValue == 1 and 'off' or (levels[newValue] or 0)..'x'))
+    string.format('Anisotropic filtering: %s', newValue == 1 and 'off' or (levels[newValue] or 0) .. 'x'))
   if ui.itemEdited() then
     applyChange('VIDEO', 'ANISOTROPIC', levels[math.round(newValue)] or 0)
   end
@@ -1175,7 +1223,7 @@ function script.windowSettings(dt)
 
   ui.offsetCursorY(12)
   ui.header('Tweaks')
-  
+
   newValue = ui.slider('##fps', 1e3 / cfgVideo:get('VIDEO', 'FPS_CAP_MS', 100), 0, 200, 'FPS cap: %.0f')
   if ui.itemEdited() then
     applyChange('VIDEO', 'FPS_CAP_MS', 1e3 / math.round(newValue))
@@ -1187,7 +1235,8 @@ function script.windowSettings(dt)
   end
 
   if not ac.isModuleActive(ac.CSPModuleID.WeatherFX) then
-    newValue = ui.slider('##srg', cfgGraphics:get('DX11', 'SKYBOX_REFLECTION_GAIN', 1) * 100, 0, 200, 'Skybox gain: %.0f%%')
+    newValue = ui.slider('##srg', cfgGraphics:get('DX11', 'SKYBOX_REFLECTION_GAIN', 1) * 100, 0, 200,
+      'Skybox gain: %.0f%%')
     if ui.itemEdited() then
       applyGraphicsChange('DX11', 'SKYBOX_REFLECTION_GAIN', newValue / 100)
     end
@@ -1198,43 +1247,19 @@ function script.windowSettings(dt)
     applyChange('SATURATION', 'LEVEL', math.round(newValue))
   end
 
+  ui.offsetCursorY(12)
+  ui.header('HUD')
+  if ui.checkbox('Proximity indicator', not cfgProximityIndicator:get('SETTINGS', 'HIDE', false)) then
+    cfgProximityIndicator:setAndSave('SETTINGS', 'HIDE', not cfgProximityIndicator:get('SETTINGS', 'HIDE', false))
+  end
+
   ui.popItemWidth()
   ui.popFont()
 end
 
-ac.onRelease(function ()
+ac.onRelease(function()
   ac.setVAOMode(ac.VAODebugMode.Active)
   ac.debugLights('', 0, ac.LightsDebugMode.None, 0)
   ac.setPhysicsDebugLines(ac.PhysicsDebugLines.None)
   debugWeatherControl.weatherType = 255
 end)
-
--- local x, y, z, w = __util.native('_test.vec3', vec3(1, 2, 3))
--- ac.log(x, y, z, w)
-
--- local x, y, z, w = __util.native('_test.rgb', ac.getCar(0).position)
--- ac.log(x, y, z, w, 'w')
-
--- function script.windowMain()
---   if ui.button('change color') then
---     ac.findMeshes('carpaint'):setMaterialTexture('txDiffuse', 'color::#%x' % math.random(1, 1e9))
---   end
---   if ui.button('refresh color') then
---     ac.refreshCarColor(0)
---   end
--- end
-
--- local name = 'C:/Games/AssettoCorsa/content/cars/.excitev3_nissan_rps13/___excitev3_nissan_rps13.kn5'
--- ac.log(ac.collectKN5TextureNames(name))
--- ac.log(ac.collectKN5MaterialProperties(name))
-
--- function script.windowMain()
---   ui.image('car0::Plate_NM.dds', 120)
---   ui.image('car0::kn5::Plate_NM.dds', 120) 
--- end 
-
--- function script.windowMain()
---   if ui.button('step') then
---     physics.teleportCarTo(1, vec3(-1019.63, 45.36, -2092.03))
---   end
--- end 
