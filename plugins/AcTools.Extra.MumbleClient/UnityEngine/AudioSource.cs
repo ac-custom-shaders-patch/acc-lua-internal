@@ -54,6 +54,7 @@ namespace UnityEngine {
 
         public const float ActiveThreshold = 0.001f;
         public const float ActivePeriod = 1f;
+        internal bool Positionless;
         internal float PeakValue;
         internal float ActiveFor;
 
@@ -229,7 +230,16 @@ namespace UnityEngine {
                         ActiveFor = ActivePeriod;
                     }
 
-                    GainEstimator.Update(posData, ref _gainLeft, ref _gainRight, ref _offsetLeft, ref _offsetRight);
+                    if (posData.Y > 1e30f) {
+                        Positionless = true;
+                        _gainLeft = 1f;
+                        _gainRight = 1f;
+                        _offsetLeft = 0f;
+                        _offsetRight = 0f;
+                    } else {
+                        Positionless = false;
+                        GainEstimator.Update(posData, ref _gainLeft, ref _gainRight, ref _offsetLeft, ref _offsetRight);
+                    }
 
                     var cur = _outputWriteCursor;
                     const int outputLen = _outputLength;

@@ -11,6 +11,7 @@
 // The names. Some obfuscators, like Beebyte, allow you to whitelist this namespace
 
 using System.Globalization;
+using AcTools.Extra.MumbleClient.Implementation.Utils;
 using UnityEngine;
 
 #pragma warning disable 1591, 0612, 3021
@@ -893,7 +894,11 @@ namespace MumbleProto
         public int AcUserID => _acUserIDValue ?? (_acUserIDValue = GetAcUserID()).Value;
 
         private int GetAcUserID() {
-            if (int.TryParse(Name, NumberStyles.Any, CultureInfo.InvariantCulture, out var ret)) {
+            var name = Name;
+            if (!string.IsNullOrEmpty(SharedSettings.UsernamePrefix) && name.StartsWith(SharedSettings.UsernamePrefix)) {
+                name = name.Substring(SharedSettings.UsernamePrefix.Length);
+            }
+            if (int.TryParse(name, NumberStyles.Any, CultureInfo.InvariantCulture, out var ret)) {
                 return ret;
             }
             if (Name == "SuperUser") {

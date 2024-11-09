@@ -12,6 +12,7 @@ namespace AcTools.Extra.MumbleClient.Implementation.Utils {
         
         public static event EventHandler<SettingChangeEventArgs> DeviceSettingChange;
 
+        public static string UsernamePrefix;
         public static string OutputStreamPrefix;
         public static string OutputDeviceName;
         public static int OutputDesiredLatency = 100;

@@ -194,9 +194,9 @@ namespace Mumble {
                 case MicType.AlwaysSend:
                     return true;
                 case MicType.Amplitude:
-                    return AudioClip.BatchPeakVolume > MinAmplitude;
+                    return AudioClip.BatchPeakVolume > MinAmplitude || PushToTalkFlag;
                 case MicType.VoiceActivity:
-                    return AudioFilterWrapper.VoiceActivityDetected;
+                    return AudioFilterWrapper.VoiceActivityDetected || PushToTalkFlag;
                 default:
                     return false;
             }
@@ -215,13 +215,13 @@ namespace Mumble {
                         _holdUntil = DateTime.Now + TimeSpan.FromSeconds(SharedSettings.VoiceHoldSeconds);
                         return true;
                     }
-                    return DateTime.Now < _holdUntil;
+                    return DateTime.Now < _holdUntil || PushToTalkFlag;
                 case MicType.VoiceActivity:
                     if (AudioFilterWrapper.VoiceActivityDetected) {
                         _holdUntil = DateTime.Now + TimeSpan.FromSeconds(SharedSettings.VoiceHoldSeconds);
                         return true;
                     }
-                    return DateTime.Now < _holdUntil;
+                    return DateTime.Now < _holdUntil || PushToTalkFlag;
                 default:
                     return false;
             }

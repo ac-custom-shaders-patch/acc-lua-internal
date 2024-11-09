@@ -24,7 +24,7 @@ namespace AcTools.Extra.MumbleClient.Implementation {
         private const int SizeConnectedState = 8;
         private const int SizeDeviceItem = MaxDeviceNameLength + MaxDeviceIconPathLength + 4;
         private const int ChannelsDataLength = 32768;
-        
+
         private const int OffsetStatic = 0;
         private const int OffsetStaticBitrate = 0;
         private const int OffsetCommands = 16 + SizeDeviceItem * MaxDevicesCount * 2;
@@ -37,6 +37,7 @@ namespace AcTools.Extra.MumbleClient.Implementation {
         private const int OffsetPushToTalk = OffsetAudioSourcePos + 12;
         private const int OffsetRequireMicPeak = OffsetPushToTalk + 1;
         private const int OffsetServerLoopback = OffsetRequireMicPeak + 1;
+        private const int OffsetPositionlessInput = OffsetServerLoopback + 1;
         private const int OffsetNumCurrentlyConnected = OffsetPushToTalk + 4;
         private const int OffsetCurrentlyConnected = OffsetNumCurrentlyConnected + 4;
         private const int OffsetChannelsPhase = OffsetCurrentlyConnected + MaxConnectedCount * SizeConnectedState;
@@ -45,7 +46,7 @@ namespace AcTools.Extra.MumbleClient.Implementation {
         private const int OffsetMark = OffsetMicPeak + 4;
         private const int SizeTotal = OffsetMark + 4;
 
-        private const int ExpectedMarkValue = 12345678;
+        private const int ExpectedMarkValue = 12345679;
 
         [Flags]
         public enum MumbleDeviceFlags : uint {
@@ -98,7 +99,8 @@ namespace AcTools.Extra.MumbleClient.Implementation {
             Deaf = 16,
             SelfDeaf = 32,
             ActiveStream = 64,
-            ImmediateTalking = 128
+            ImmediateTalking = 128,
+            Positionless = 256
         }
 
         private readonly MonoBehaviour.IMonoRunner _runner;
@@ -174,10 +176,10 @@ namespace AcTools.Extra.MumbleClient.Implementation {
                     };
             _client.ChannelStateChange += () => _channelsStateDirty = true;
 
+            SharedSettings.UsernamePrefix = config.String("server.usernamePrefix");
             var connectAsAdmin = config.Bool("server.admin") ?? false;
-            _client.Connect(
-                    connectAsAdmin ? "SuperUser" : config.Int("server.userID")?.ToString(CultureInfo.InvariantCulture)
-                            ?? throw new Exception("Parameter “server.userID” is missing"),
+            _client.Connect(connectAsAdmin ? "SuperUser" : (SharedSettings.UsernamePrefix ?? string.Empty)
+                    + (config.Int("server.userID")?.ToString(CultureInfo.InvariantCulture) ?? throw new Exception("Parameter “server.userID” is missing")),
                     config.String("server.password") ?? string.Empty);
 
             if (connectAsAdmin) {
@@ -268,14 +270,14 @@ namespace AcTools.Extra.MumbleClient.Implementation {
             // Sync static state if necessary
             if (_staticStateDirty) {
                 _staticStateDirty = false;
-                
+
                 var selectedInput = DevicesHolder.GetIn(_client.Mic.MicName);
                 MarshalMatters.Fill(out _staticState.NumInputDevices, _staticState.InputDevices, DevicesHolder.GetIns(),
                         (DevicesHolder.DeviceInfo src, ref MumbleDeviceInfo dst) => dst.Fill(src, ReferenceEquals(src, selectedInput)));
                 var selectedOutput = DevicesHolder.GetOut(SharedSettings.OutputDeviceName);
                 MarshalMatters.Fill(out _staticState.NumOutputDevices, _staticState.OutputDevices, DevicesHolder.GetOuts(),
                         (DevicesHolder.DeviceInfo src, ref MumbleDeviceInfo dst) => dst.Fill(src, ReferenceEquals(src, selectedOutput)));
-                
+
                 _staticState.Bitrate = _client.Bitrate;
                 _staticState.StreamConnectPointSize = AudioSource._mmfSize;
                 _staticState.ToBytes(&ptr[OffsetStatic]);
@@ -296,9 +298,13 @@ namespace AcTools.Extra.MumbleClient.Implementation {
             own.Dir = *(MuVec3*)&ptr[OffsetListenerDir];
             own.Up = *(MuVec3*)&ptr[OffsetListenerUp];
             GainEstimator.Own = own;
-
+            
             if (_sendPosition) {
-                _client.Mic.SourcePos = *(MuVec3*)&ptr[OffsetAudioSourcePos];
+                var pos = *(MuVec3*)&ptr[OffsetAudioSourcePos];
+                if (ptr[OffsetPositionlessInput] != 0) {
+                    pos.Y = 1e31f;
+                }
+                _client.Mic.SourcePos = pos;
             }
             _client.Mic.PushToTalkFlag = ptr[OffsetPushToTalk] != 0;
             _client.Mic.RequireMicPeak = ptr[OffsetRequireMicPeak] != 0;
@@ -368,9 +374,12 @@ namespace AcTools.Extra.MumbleClient.Implementation {
                         if (player._mmfOpened) {
                             flags |= MumbleConnectedFlags.ActiveStream;
                         }
+                        if (player.Positionless) {
+                            flags |= MumbleConnectedFlags.Positionless;
+                        }
                     }
                 }
-                
+
                 if (ownUser && _client.Mic.RequireMicPeak && _client.Mic.ImmediateSendTrigger()) {
                     flags |= MumbleConnectedFlags.ImmediateTalking;
                 }
