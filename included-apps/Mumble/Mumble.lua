@@ -89,8 +89,10 @@ else
       PASSWORD = '',
       CHANNEL = 'Root',
       POSITIONAL_AUDIO = true,
+      POSITIONAL_AUDIO_DIRECT_PTT = false,
       POSITIONAL_MAX_DISTANCE = 50,
-      MUTE_DISTANCE = math.huge
+      MUTE_DISTANCE = math.huge,
+      USERNAME_PREFIX = ''
     })
     if cfg.HOST == '' then
       ac.unloadApp()
@@ -105,15 +107,18 @@ else
           if k == 'ServerPortUDP' then return ac.getServerPortUDP() end
         end)
       end
+      ac.log('Mumble config', cfg)
       mumble = require('./src/MumbleWrapper')({
         host = preprocessValue(cfg.HOST),
         port = cfg.PORT,
         password = preprocessValue(cfg.PASSWORD),
         channel = preprocessValue(cfg.CHANNEL),
         use3D = cfg.POSITIONAL_AUDIO,
+        useDirectPTT = cfg.POSITIONAL_AUDIO_DIRECT_PTT,
         maxDistance = cfg.POSITIONAL_MAX_DISTANCE,
         muteDistance = cfg.MUTE_DISTANCE,
-        context = string.format('%s:%s', ac.getServerIP(), ac.getServerPortTCP())
+        context = string.format('%s:%s', ac.getServerIP(), ac.getServerPortTCP()),
+        usernamePrefix = cfg.USERNAME_PREFIX ~= '' and preprocessValue(cfg.USERNAME_PREFIX) or nil
       })
     end
   end)

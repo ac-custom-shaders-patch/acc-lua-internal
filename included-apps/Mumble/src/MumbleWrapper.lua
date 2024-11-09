@@ -20,6 +20,7 @@ local FLAG_DEAF = const(16)
 local FLAG_SELF_DEAF = const(32)
 local FLAG_STREAM = const(64)
 local FLAG_IMMEDIATE_TALKING = const(128)
+local FLAG_POSITIONLESS = const(256)
 local FLAG_MUTED_ANY = const(2 + 4 + 8)
 
 local DEF_DEVICE_NAME_SIZE = const(256)
@@ -29,11 +30,11 @@ local DEF_MAX_DEVICE_COUNT = const(64)
 local DEF_MAX_COMMAND_COUNT = const(64)
 local DEF_MAX_CONNECTED_COUNT = const(256)
 local DEF_CHANNELS_DATA_SIZE = const(32768)
-local DEF_EXPECTED_MARK_VALUE = const(12345678)
+local DEF_EXPECTED_MARK_VALUE = const(12345679)
 
 local SETTINGS_COLUMN_WIDTH = const(90)
 
----@alias MumbleConfig {configPrefix: string?, host: string, port: integer, password: string?, channel: string?, context: string?, use3D: boolean?, maxDistance: number?, muteDistance: number?}
+---@alias MumbleConfig {configPrefix: string?, host: string, port: integer, password: string?, channel: string?, context: string?, use3D: boolean?, useDirectPTT: boolean?, maxDistance: number?, muteDistance: number?, usernamePrefix: string?}
 ---@alias MumbleWrapper {update: fun(dt: number), main: fun(), settings: fun(), fullscreen: fun()}
 
 ffi.cdef(const('\
@@ -62,6 +63,7 @@ ffi.cdef(const('\
 ---@field pushToTalk boolean
 ---@field requireMicPeak boolean
 ---@field serverLoopback boolean
+---@field positionlessInput boolean
 ---@field numCurrentlyConnected integer
 ---@field currentlyConnected MumbleMMF.User[]
 ---@field channelsPhase integer
@@ -87,7 +89,7 @@ local function MumbleMMF(endpoint)
     bool pushToTalk;\
     bool requireMicPeak;\
     bool serverLoopback;\
-    bool _pad1;\
+    bool positionlessInput;\
     int numCurrentlyConnected;\
     mumble_ConnectedState currentlyConnected['..DEF_MAX_CONNECTED_COUNT..'];\
     int channelsPhase;\
@@ -105,6 +107,17 @@ local sim = ac.getSim()
 local uiState = ac.getUI()
 local ownCar = ac.getCar(0)
 if not ownCar then error('Player car is missing', 2) end
+
+-- Warning about new PTT mode
+local function showAdaptivePTTNote()
+  ui.modalPopup('PTT-aware voice chat', 'Server uses adaptive PTT mode.\n\nHolding PTT button will broadcast your voice on radio for all. If button is released (and voice input mode is set to something other that PTT), only people nearby will hear you.', 'Got it', 'Don’t show again', ui.Icons.Confirm, ui.Icons.Save, function (okPressed)
+    if not okPressed then
+      ac.storage.pptMsgShown = true
+    else
+      ac.storage.pptMsgShown = nil
+    end
+  end)
+end
 
 -- Utility functions
 
@@ -183,6 +196,14 @@ return function(mumbleParams)
   ---@type MumbleConfig
   mumbleParams = table.chain({ host = 'localhost', port = 64738, channel = 'Root', use3D = true, maxDistance = 50, muteDistance = math.huge }, mumbleParams)
 
+  if mumbleParams.useDirectPTT and not mumbleParams.use3D then
+    mumbleParams.useDirectPTT = false
+  end
+
+  if mumbleParams.useDirectPTT and not ac.storage.pptMsgShown then
+    setTimeout(showAdaptivePTTNote)
+  end
+
   -- Wrapper config
 
   local config = ac.storage({
@@ -258,6 +279,7 @@ return function(mumbleParams)
     table.clear(commandsList)
     commandsCount = 0
     ac.setWindowNotificationCounter('main', 0)
+    ac.warn('config.inputDevice', config.inputDevice)
     os.runConsoleProcess({
       filename = ac.getFolder(ac.FolderID.ExtInternal)..'/plugins/AcTools.MumbleClient.exe',
       stdin = encodeConfig({
@@ -265,6 +287,7 @@ return function(mumbleParams)
         ['system.streamConnectPointsPrefix'] = config.outputFMOD and mmfKey..'.' or '',
         ['system.forceTCP'] = config.systemForceTCP,
         ['system.setQOS'] = config.systemSetQOS,
+        ['server.usernamePrefix'] = mumbleParams.usernamePrefix,
         ['data.sendPosition'] = mumbleParams.use3D or (mumbleParams.muteDistance or math.huge) < 1e9,
         ['audio.inputBitrate'] = config.inputBitrate,
         ['audio.inputDevice'] = config.inputDevice,
@@ -520,8 +543,18 @@ return function(mumbleParams)
       end
       self.player.volume = volumeBoost * config.outputVolume * math.max(0, 1 - self.car.distanceToCamera / mumbleParams.muteDistance)
       if mumbleParams.use3D then
-        ac.getDriverHeadTransformTo(headTransform, self.car.index)
-        self.player:setPosition(headTransform.position, headTransform.look:normalize(), headTransform.up, self.car.velocity)
+        local velocity
+        if mumbleParams.useDirectPTT and HAS_FLAG(self, FLAG_POSITIONLESS) then
+          ac.getDriverHeadTransformTo(headTransform, 0)
+          velocity = ownCar.velocity
+        else
+          ac.getDriverHeadTransformTo(headTransform, self.car.index)
+          velocity = self.car.velocity
+        end
+        if mumbleParams.useDirectPTT then
+          self.player:setDSPParameter(0, 0, HAS_FLAG(self, FLAG_POSITIONLESS) and 1 or 0)
+        end
+        self.player:setPosition(headTransform.position, headTransform.look:normalize(), headTransform.up, velocity)
       end
     elseif self.player then
       self.player:dispose()
@@ -541,7 +574,8 @@ return function(mumbleParams)
       insideConeAngle = 120,
       outsideConeAngle = 240,
       outsideVolume = 0.6,
-      dopplerEffect = (mumbleParams.use3D and config.outputDoppler) and 1 or 0
+      dopplerEffect = (mumbleParams.use3D and config.outputDoppler) and 1 or 0,
+      dsp = mumbleParams.useDirectPTT and { ac.AudioDSP.Distortion } or nil,
     }, mumbleParams.use3D and config.outputReverb or false)
     player.volume = config.outputVolume
     player.cameraExteriorMultiplier = 1
@@ -656,9 +690,17 @@ return function(mumbleParams)
     mmf.listenerUp:set(sim.cameraUp)
     ownCar.bodyTransform:transformPointTo(mmf.audioSourcePos, ownCar.driverEyesPosition)
     mmf.pushToTalk = pushToTalkButton:down()
+    if mumbleParams.useDirectPTT then
+      mmf.positionlessInput = pushToTalkButton:down()
+    end
 
-    local ownMuted = HAS_FLAG(mmf.currentlyConnected[0], FLAG_MUTED_ANY) and (config.inputMode ~= 'pushToTalk' or mmf.pushToTalk)
+    local ownMuted = HAS_FLAG(mmf.currentlyConnected[0], FLAG_MUTED_ANY) and (config.inputMode ~= 'pushToTalk' or mmf.pushToTalk or mumbleParams.useDirectPTT)
     ownMutedAnimation = ownMutedSmoothness(ownMuted and 1 or 0)
+
+    -- Now, holding PTT button overrides other detections, but we only need it in PPT-adaptive mode
+    if config.inputMode ~= 'pushToTalk' and not mumbleParams.useDirectPTT then
+      mmf.pushToTalk = false
+    end
 
     if mmf.frameIndex > lastMicRequireFrame then
       mmf.requireMicPeak = false
@@ -863,6 +905,9 @@ return function(mumbleParams)
     end
   end
 
+  -- ui.beginTreeNode = function () return true end
+  -- ui.endTreeNode = function () end
+
   ---@param channel MumbleMMF.Channel 
   local function CtrlUsers_Channel(channel)
     if channel.description == 'hidden' then
@@ -900,7 +945,7 @@ return function(mumbleParams)
             CtrlUsers_Channel(v)
           end
           CtrlUsers_Users(firstConnected, channel.id)
-        end, ui.endTreeNode)
+        end, channel.parent ~= nil and ui.endTreeNode or nil)
       else
         if firstConnected == 0 then
           ui.popStyleColor()
@@ -1203,6 +1248,7 @@ return function(mumbleParams)
             restartFMODStreams()
           end
           config[key] = name
+          ac.warn(key, name)
         end
         ui.addIcon(ffi.string(list[i].icon), vec2(16, 16), vec2(0, 0.5))
       end
@@ -1212,10 +1258,10 @@ return function(mumbleParams)
 
   local settingsInputModes = {
     { value = 'alwaysSend', name = 'Continuous', description = 'Stream audio constantly', settings = function () end },
-    { value = 'pushToTalk', name = 'Push-to-Talk', description = 'Hold a button to talk', settings = function ()
+    { value = 'pushToTalk', name = 'Push-to-Talk', description = 'Hold a button to talk', settings = function (generic)
       ui.offsetCursorX(SETTINGS_COLUMN_WIDTH)
       ui.alignTextToFramePadding()
-      ui.text('Button:')
+      ui.text(generic and 'PTT:' or 'Button:')
       ui.sameLine(200)
       pushToTalkButton:control(vec2(ui.availableSpaceX(), 0))
     end },
@@ -1289,6 +1335,13 @@ return function(mumbleParams)
         ui.progressBar(mmf.micPeak, vec2(ui.availableSpaceX(), 2))
       end
       currentMode.settings()
+      if mumbleParams.useDirectPTT and config.inputMode ~= 'pushToTalk' then
+        settingsInputModes[2].settings(true)
+        ui.offsetCursorX(SETTINGS_COLUMN_WIDTH)
+        if ui.textHyperlink('Push-To-Talk?') then
+          showAdaptivePTTNote()
+        end
+      end
 
       ui.offsetCursorY(20)
       
