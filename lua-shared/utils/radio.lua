@@ -1,6 +1,7 @@
 --[[
   Wrapper for shared internet-radio module.
 ]]
+---@diagnostic disable
 
 ---@alias radio.RadioStation {name: string, url: string, id: integer}
 

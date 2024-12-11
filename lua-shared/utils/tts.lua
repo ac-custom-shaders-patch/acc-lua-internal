@@ -3,6 +3,7 @@
 
   To use, include with `local tts = require('shared/utils/tts')` and then call `tts.say('phrase')`.
 ]]
+---@diagnostic disable
 
 local tts = {}
 local callbacks

@@ -7,6 +7,7 @@
 
   To prevent spam, secondary calls with the same app ID will be ignored.
 ]]
+---@diagnostic disable
 
 local appShelf = {}
 

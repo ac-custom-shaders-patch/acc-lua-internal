@@ -8,6 +8,7 @@
   Please do not fork it and copy it in your project directly, but always load it from “shared/…”: it uses a bit of internal API to better integrate
   to some other functions and be able to map files into RAM instead of loading files the usual way.
 ]]
+---@diagnostic disable
 
 if tostring(debug.gethook):find('function: builtin#', nil, true) ~= 1 then
   -- You can find a workaround, but please don’t waste precious time: this script relies on many things not available to I/O-less scripts. Maybe
@@ -691,9 +692,26 @@ function _writeMt_index:string(data)
   else
     local b = __util.cdata_blob(data)
     local s = b.p_end - b.p_begin
-    local c = _fit(self, s)
+    local c = _fit(self, 4 + s)
     ffi.cast(types.int32, self.__data + c)[0] = s
     ffi.copy(self.__data + (c + 4), b.p_begin, s)
+  end
+  return self
+end
+
+---Appends a string or binary data without any size prefixes.
+---@param data any
+---@return binaryUtils.BinaryWriter
+function _writeMt_index:append(data)
+  if type(data) == 'string' then
+    local s = #data
+    local c = _fit(self, s)
+    ffi.copy(self.__data + c, data, s)
+  else
+    local b = __util.cdata_blob(data)
+    local s = b.p_end - b.p_begin
+    local c = _fit(self, s)
+    ffi.copy(self.__data + c, b.p_begin, s)
   end
   return self
 end
@@ -806,7 +824,7 @@ function binaryUtils.writeData(sizeHint)
     end,
     __release = function (o)
       o, o.__data = o.__data, nil
-      if o ~= nil then ffi.C.lj_free(o) end
+      if o ~= nil then ffi.C.lj_free2(o, 'b') end
     end
   }, true)
 end

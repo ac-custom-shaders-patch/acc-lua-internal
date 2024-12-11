@@ -3,6 +3,7 @@
 
   To use, include with `local ai = require('shared/sim/ai')`.
 ]]
+---@diagnostic disable
 
 local ai = {
   spline = {

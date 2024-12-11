@@ -16,6 +16,7 @@
     local weatherUtils = require('shared/sim/weather')
     weatherUtils.debugAware(conditions)
 ]]
+---@diagnostic disable
 
 local rainIntensities = {}
 rainIntensities[ac.WeatherType.Clear] =             0

@@ -8,6 +8,7 @@
   To use, add `require('shared/utils/sqlite')` before including sqlite.lua. Note that only scripts with
   proper I/O access would be able to access SQLite functions.
 ]]
+---@diagnostic disable
 
 -- Seems like luv is not really needed, so here is a plug:
 package.loaded['luv'] = {

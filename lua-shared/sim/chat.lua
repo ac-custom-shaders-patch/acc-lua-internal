@@ -4,6 +4,7 @@
 
   To use, include with `local chat = require('shared/sim/chat')`.
 ]]
+---@diagnostic disable
 
 local chat = {
   extras = {

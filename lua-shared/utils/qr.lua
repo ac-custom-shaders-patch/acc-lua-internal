@@ -5,6 +5,7 @@
   Alternatively, do not pass callback and instead just use returned value in UI functions (without cache or destination set result will be
   cached across calls).
 ]]
+---@diagnostic disable
 
 local qr = {}
 local encodeCache = {}

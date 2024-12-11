@@ -2,6 +2,7 @@
   If your script is playing music, this library can help to announce details about currently playing track
   overriding data CSP would be guessing from system otherwise.
 ]]
+---@diagnostic disable
 
 local playing = {}
 

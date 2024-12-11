@@ -18,6 +18,7 @@
   • If you already have a dynamic texture used for something else and you want to mirror it to OBS, simply pass it instead of callback
     to `obs.register()` and this glue library will copy its content when required. 
 ]]
+---@diagnostic disable
 
 ffi.cdef([[typedef struct {
 uint32_t handle;

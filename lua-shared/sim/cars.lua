@@ -11,6 +11,7 @@
     local carsUtils = require('shared/sim/cars')
     carsUtils.getTyreThermalConfigValue(0, true, 'SURFACE_TRANSFER', 0.01)
 ]]
+---@diagnostic disable
 
 local tyresCache = {}
 

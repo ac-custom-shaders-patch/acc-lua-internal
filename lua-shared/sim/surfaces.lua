@@ -3,6 +3,7 @@
 
   To use, include with `local surfaces = require('shared/sim/surfaces')`.
 ]]
+---@diagnostic disable
 
 local surfaces = {
 }

@@ -4,6 +4,7 @@
 
   To use, include with `local fireworks = require('shared/sim/fireworks')`.
 ]]
+---@diagnostic disable
 
 local fireworks = {}
 

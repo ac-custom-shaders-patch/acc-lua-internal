@@ -3,6 +3,7 @@
 
   To use, include with `local ai = require('shared/sim/ghost')`.
 ]]
+---@diagnostic disable
 
 local ghost = {}
 
@@ -17,6 +18,21 @@ end
 ---@param timeMs number? @Time in milliseconds (pass `nil` to disable forcing).
 function ghost.forceTime(timeMs)
   __util.native('ghost.forceTimeMs', tonumber(timeMs) or -1)
+end
+
+---Returns ghost time in milliseconds, or `nil` if there is no ghost.
+---@return number?
+function ghost.getTime()
+  return __util.native('ghost.getTimeMs')
+end
+
+local transform = mat4x4()
+
+---Returns ghost opacity and transform matrix.
+---@return number @Opacity from 0 to 1, 0 for hidden ghost.
+---@return mat4x4 @Current ghost transformation matrix (might be invalid if opacity is 0, as updates could be paused).
+function ghost.getStateAndTransform()
+  return __util.native('ghost.getStateAndTransform', transform) or 0, transform
 end
 
 ---Creates a new ghost recording from positions. Callback will be called for individual time points, time is in seconds. Return car position or 

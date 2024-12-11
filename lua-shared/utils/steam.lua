@@ -2,6 +2,7 @@
   Access to Steam API. Available to scripts with I/O access or online scripts only, others will raise an error. Also raises an error 
   if failed to get access to the Steam API.
 ]]
+---@diagnostic disable
 
 ---Steam API namespace.
 local steam = {

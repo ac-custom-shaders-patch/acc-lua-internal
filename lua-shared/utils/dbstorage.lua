@@ -22,6 +22,7 @@
   ac.log(dbList:get('TestEntry2'))
   ```
 ]]
+---@diagnostic disable
 
 local sqlite, tbl = (function ()
   ffi.cdef [[
