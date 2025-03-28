@@ -1073,6 +1073,14 @@ local function checkCompatibility()
   end
 end
 
+local allowScreenshotsCache
+local function allowScreenshots()
+  if allowScreenshotsCache == nil then
+    allowScreenshotsCache = ac.INIConfig.cspModule(ac.CSPModuleID.SmallTweaks):get('MISCELLANEOUS', 'ANDROID_AUTO_TAKE_SCREENSHOT', false) or false
+  end
+  return allowScreenshotsCache
+end
+
 local function actualUpdate(dt)
   ui.setAsynchronousImagesLoading(true)
   touchscreen.update(appNext ~= appCurrent, dt)
@@ -1133,7 +1141,7 @@ local function actualUpdate(dt)
 
   touchscreen.keyboard()
 
-  if ac.isControllerGearDownPressed() and ac.isControllerGearUpPressed() and screenshotTime <= 0 then
+  if car.gas > 0.9 and car.brake > 0.9 and car.handbrake > 0.9 and screenshotTime <= 0 and allowScreenshots() then
     system.lastScreenshot = ui.ExtraCanvas(ui.windowSize())
     system.lastScreenshot:update(function ()
       ui.drawImage('dynamic::android_auto', 0, ui.availableSpace(),
