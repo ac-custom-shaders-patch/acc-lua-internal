@@ -25,7 +25,7 @@ namespace AcTools.Extra.CurrentlyPlaying {
         /// <summary>
         /// Triggered when a song changes of a MediaSession
         /// </summary>
-        public static event TypedEventHandler<MediaSession, GlobalSystemMediaTransportControlsSessionMediaProperties> OnSongChanged;
+        public static event TypedEventHandler<MediaSession, GlobalSystemMediaTransportControlsSession> OnSongChanged;
 
         /// <summary>
         /// A dictionary of the current MediaSessions
@@ -67,7 +67,6 @@ namespace AcTools.Extra.CurrentlyPlaying {
 
         public class MediaSession {
             public GlobalSystemMediaTransportControlsSession ControlSession;
-            public string LastSong;
 
             public MediaSession(GlobalSystemMediaTransportControlsSession ctrlSession) {
                 ControlSession = ctrlSession;
@@ -86,15 +85,8 @@ namespace AcTools.Extra.CurrentlyPlaying {
                 }
             }
 
-            internal async void OnSongChange(GlobalSystemMediaTransportControlsSession session, MediaPropertiesChangedEventArgs args = null) {
-                var props = await session.TryGetMediaPropertiesAsync();
-                string song = $"{props.Title} | {props.Artist}";
-
-                //This is needed because for some reason this method is invoked twice every song change
-                if (LastSong != song && !(String.IsNullOrWhiteSpace(props.Title) && String.IsNullOrWhiteSpace(props.Artist))) {
-                    LastSong = song;
-                    OnSongChanged?.Invoke(this, props);
-                }
+            internal void OnSongChange(GlobalSystemMediaTransportControlsSession session, MediaPropertiesChangedEventArgs args = null) {
+                OnSongChanged?.Invoke(this, session);
             }
         }
     }
