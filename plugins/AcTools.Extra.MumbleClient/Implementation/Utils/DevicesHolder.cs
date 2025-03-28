@@ -114,9 +114,15 @@ namespace AcTools.Extra.MumbleClient.Implementation.Utils {
                 try {
                     using (var enumerator = new MMDeviceEnumerator()) {
                         Func<string, int, DeviceInfo> PrepareInfos(DataFlow flow) {
-                            var defaultDevice = enumerator.GetDefaultAudioEndpoint(flow, Role.Communications);
+                            MMDevice defaultDevice = null;
+                            try {
+                                defaultDevice = enumerator.GetDefaultAudioEndpoint(flow, Role.Communications);
+                            } catch (Exception e) {
+                                Debug.LogWarning($"Failed to get the default device: {e.Message}");
+                            }
                             var ret = enumerator.EnumerateAudioEndPoints(flow, DeviceState.Active).Select(x => {
                                 try {
+                                    if (defaultDevice == null) defaultDevice = x;
                                     return DeviceInfo.Create(x, x == defaultDevice);
                                 } catch (Exception e) {
                                     if (_instance == null) {

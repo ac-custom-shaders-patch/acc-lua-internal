@@ -30,6 +30,13 @@ namespace Mumble {
         internal MumbleUdpConnection(IPEndPoint host, AudioDecodeThread audioDecodeThread, MumbleClient mumbleClient) {
             _host = host;
             _udpClient = new UdpClient();
+            if (Environment.GetEnvironmentVariable("ACCSP_PREFERRED_ADAPTER_IP") is string ip) {
+                try {
+                    _udpClient.Client.Bind(new IPEndPoint(IPAddress.Parse(ip), 0));
+                } catch (Exception e) { 
+                    Debug.LogError($"Failed to bind UDP socket to {ip}: {e.Message}");
+                }
+            }
             _audioDecodeThread = audioDecodeThread;
             _mumbleClient = mumbleClient;
         }
@@ -185,7 +192,8 @@ namespace Mumble {
         }
 
         private readonly byte[] _sendPingBuffer = new byte[9];
-        public static readonly long DateTimeBase = DateTime.Parse("01/01/1970 00:00:00").Ticks;
+
+        public static readonly long DateTimeBase = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
 
         private unsafe void SendPing() {
             if (!_isConnected) {

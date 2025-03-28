@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using MumbleProto;
 using UnityEngine;
@@ -36,7 +37,17 @@ namespace Mumble {
             _hostname = hostname;
             _mumbleClient = mumbleClient;
             _udpConnection = udpConnection;
-            _tcpClient = new TcpClient();
+            if (Environment.GetEnvironmentVariable("ACCSP_PREFERRED_ADAPTER_IP") is string ip) {
+                try {
+                    _tcpClient = new TcpClient(new IPEndPoint(IPAddress.Parse(ip), 0));
+                    Debug.LogResponse($"TCP socket is bound to {ip}");
+                } catch (Exception e) {
+                    Debug.LogError($"Failed to bind TCP socket to {ip}: {e.Message}");
+                }
+            }
+            if (_tcpClient == null) {
+                _tcpClient = new TcpClient();
+            }
             _updateOcbServerNonce = updateOcbServerNonce;
 
             // Set thread as running before starting
@@ -59,7 +70,8 @@ namespace Mumble {
             try {
                 var networkStream = _tcpClient.GetStream();
                 _ssl = new SslStream(networkStream, false, ValidateCertificate);
-                _ssl.AuthenticateAsClient(_hostname);
+                _ssl.AuthenticateAsClient(_hostname, null, SslProtocols.Ssl2
+                        | SslProtocols.Ssl3 | (SslProtocols)12288 | SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls, false);
                 _reader = new BinaryReader(_ssl);
                 _writer = new BinaryWriter(_ssl);
 
@@ -79,7 +91,7 @@ namespace Mumble {
                         Environment.Exit(ExitCode.HostRejected);
                     }
                 }
-                
+
                 Environment.Exit(ExitCode.FailedToConnect);
             }
         }

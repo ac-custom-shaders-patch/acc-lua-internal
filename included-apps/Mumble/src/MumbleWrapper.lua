@@ -185,6 +185,15 @@ local exitCodes = {
 }
 
 local pushToTalkButton = ac.ControlButton('__EXT_PUSHTOTALK')
+local extraAudios = {} ---@type table<string, ac.AudioEvent>
+
+local function playAudio(file)
+  if extraAudios[file] then
+    if extraAudios[file]:isValid() then --[[ still playing ]] return end
+    extraAudios[file]:dispose()
+  end
+  extraAudios[file] = ac.AudioEvent.fromFile({filename = 'res/%s.mp3' % file, use3D = false, loop = false}, false):resume()
+end
 
 -- Actual state-storing implementation
 
@@ -288,7 +297,7 @@ return function(mumbleParams)
         ['system.forceTCP'] = config.systemForceTCP,
         ['system.setQOS'] = config.systemSetQOS,
         ['server.usernamePrefix'] = mumbleParams.usernamePrefix,
-        ['data.sendPosition'] = mumbleParams.use3D or (mumbleParams.muteDistance or math.huge) < 1e9,
+        ['data.sendPosition'] = mumbleParams.use3D or (mumbleParams.muteDistance or math.huge) < 1e9 or mumbleParams.useDirectPTT,
         ['audio.inputBitrate'] = config.inputBitrate,
         ['audio.inputDevice'] = config.inputDevice,
         ['audio.inputDevice.volume'] = config.inputVolume,
@@ -494,9 +503,10 @@ return function(mumbleParams)
     return os.preciseClock() < self.lastConnectedTime + 0.5
   end
 
+  local mumbleTalkingColor = rgbm(0, 1, 1, 1)
   function CarData:getMumbleColor()
     if self.talkingAnimation > 0.01 then
-      return rgbm.colors.cyan
+      return mumbleTalkingColor
     elseif self:isMumbleConnected() then
       return rgbm.colors.lime
     else
@@ -521,7 +531,22 @@ return function(mumbleParams)
     end
 
     local flagTalking = HAS_FLAG(self, FLAG_TALKING) and self.car.isConnected
+    if mumbleParams.useDirectPTT and self.car.index ~= 0 then
+      if self.car.isConnected then
+        if not self.pptIntro then
+          self.pptIntro = true
+          playAudio('connected')
+        end
+      elseif self.pptIntro then
+        self.pptIntro = false
+        playAudio('disconnected')
+      end
+    end
     if not flagTalking and self.talkingAnimation < 0.001 and self.peakSmoothed < 0.02 then
+      if self.pttBeep and self.car.index ~= 0 then 
+        self.pttBeep = false
+        playAudio('mic_off')
+      end
       if self.player then self.player.volume = 0 end
       return false
     end
@@ -545,14 +570,22 @@ return function(mumbleParams)
       if mumbleParams.use3D then
         local velocity
         if mumbleParams.useDirectPTT and HAS_FLAG(self, FLAG_POSITIONLESS) then
-          ac.getDriverHeadTransformTo(headTransform, 0)
-          velocity = ownCar.velocity
+          if not self.pttBeep and self.car.index ~= 0 then
+            self.pttBeep = true
+            playAudio('mic_on')
+          end
+          headTransform.position = sim.cameraPosition
+          headTransform.look = sim.cameraLook
+          headTransform.look = sim.cameraUp
+          velocity = sim.closelyFocusedCar ~= -1 and ac.getCar(sim.closelyFocusedCar).velocity or vec3()
         else
           ac.getDriverHeadTransformTo(headTransform, self.car.index)
           velocity = self.car.velocity
         end
         if mumbleParams.useDirectPTT then
-          self.player:setDSPParameter(0, 0, HAS_FLAG(self, FLAG_POSITIONLESS) and 1 or 0)
+          self.player
+            :setDSPParameter(0, 0, HAS_FLAG(self, FLAG_POSITIONLESS) and 1200 or 22e3)
+            :setDSPParameter(1, 0, HAS_FLAG(self, FLAG_POSITIONLESS) and 1500 or 0)
         end
         self.player:setPosition(headTransform.position, headTransform.look:normalize(), headTransform.up, velocity)
       end
@@ -575,7 +608,7 @@ return function(mumbleParams)
       outsideConeAngle = 240,
       outsideVolume = 0.6,
       dopplerEffect = (mumbleParams.use3D and config.outputDoppler) and 1 or 0,
-      dsp = mumbleParams.useDirectPTT and { ac.AudioDSP.Distortion } or nil,
+      dsp = mumbleParams.useDirectPTT and { ac.AudioDSP.LowPass, ac.AudioDSP.HighPass } or nil,
     }, mumbleParams.use3D and config.outputReverb or false)
     player.volume = config.outputVolume
     player.cameraExteriorMultiplier = 1
@@ -690,9 +723,7 @@ return function(mumbleParams)
     mmf.listenerUp:set(sim.cameraUp)
     ownCar.bodyTransform:transformPointTo(mmf.audioSourcePos, ownCar.driverEyesPosition)
     mmf.pushToTalk = pushToTalkButton:down()
-    if mumbleParams.useDirectPTT then
-      mmf.positionlessInput = pushToTalkButton:down()
-    end
+    mmf.positionlessInput = mumbleParams.useDirectPTT and mmf.pushToTalk or false
 
     local ownMuted = HAS_FLAG(mmf.currentlyConnected[0], FLAG_MUTED_ANY) and (config.inputMode ~= 'pushToTalk' or mmf.pushToTalk or mumbleParams.useDirectPTT)
     ownMutedAnimation = ownMutedSmoothness(ownMuted and 1 or 0)
@@ -819,12 +850,12 @@ return function(mumbleParams)
     if ex then
       ui.setNextItemWidth(ui.availableSpaceX())
       if ex.car.index == 0 then
-        config.inputVolume = ui.slider('##volume', config.inputVolume * 100, 0, 100, 'Microphone volume: %.0f%%') / 100
+        config.inputVolume = ui.slider('##volume', config.inputVolume * 100, 0, 200, 'Microphone volume: %.0f%%') / 100
         if ui.itemEdited() then
           addCommand('audio.inputDevice.volume', config.inputVolume)
         end
       else
-        local newVolume = ui.slider('##volume', ex.driverConfig.volume * 100, 0, 100, 'Voice volume: %.0f%%') / 100
+        local newVolume = ui.slider('##volume', ex.driverConfig.volume * 100, 0, 200, 'Voice volume: %.0f%%') / 100
         if ui.itemEdited() then
           ex:configure({volume = newVolume})
         end
@@ -1302,7 +1333,7 @@ return function(mumbleParams)
       CtrlDeviceList(mmf.numInputDevices, mmf.inputDevices, 'inputDevice')
       ui.offsetCursorX(SETTINGS_COLUMN_WIDTH)
       ui.setNextItemWidth(ui.availableSpaceX())
-      config.inputVolume = ui.slider('##inputVolume', config.inputVolume * 100, 0, 100, 'Volume: %.0f%%') / 100
+      config.inputVolume = ui.slider('##inputVolume', config.inputVolume * 100, 0, 200, 'Volume: %.0f%%') / 100
       if ui.itemEdited() then
         addCommand('audio.inputDevice.volume', config.inputVolume)
       end
@@ -1415,7 +1446,7 @@ return function(mumbleParams)
       CtrlDeviceList(mmf.numOutputDevices, mmf.outputDevices, 'outputDevice', true)
       ui.offsetCursorX(SETTINGS_COLUMN_WIDTH)
       ui.setNextItemWidth(ui.availableSpaceX())
-      config.outputVolume = ui.slider('##outputVolume', config.outputVolume * 100, 0, 100, 'Volume: %.0f%%') / 100
+      config.outputVolume = ui.slider('##outputVolume', config.outputVolume * 100, 0, 200, 'Volume: %.0f%%') / 100
       if ui.itemEdited() then
         addCommand('audio.outputDevice.volume', config.outputVolume)
         updateFMODStreamsVolume()

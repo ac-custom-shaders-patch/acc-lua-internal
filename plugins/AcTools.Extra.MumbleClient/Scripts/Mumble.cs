@@ -737,7 +737,7 @@ namespace MumbleProto
         [global::System.ComponentModel.DefaultValue(false)]
         public bool CanEnter
         {
-            get { return __pbn__CanEnter ?? false; }
+            get { return __pbn__CanEnter ?? true; }
             set { __pbn__CanEnter = value; }
         }
         public bool ShouldSerializeCanEnter()
