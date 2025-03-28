@@ -5,37 +5,9 @@
 
 local motec = {}
 
-local writerMt = {
-  __call = function (s, value)
-    return __util.native("inner.cphys.luaLogger.write", s.name, s.attributes, value * s.multiplier)
-  end,
-  __index = {
-      ---Write a new value to a channel.
-      ---@param value number
-      ---@return boolean @Returns `false` if logging is not currently available.
-      write = function(s, value)
-          return __util.native("inner.cphys.luaLogger.write", s.name, s.attributes, value * s.multiplier)
-      end,
-  },
-}
-
----Creates a new channel in Motec telemetry. Use it from something like a car physics script.
----@param props {name: string, shortName: string?, unit: string?, frequency: 'low'|'medium'|'high'?, decimals: integer?, multiplier: number?}
----@return fun(value: number) @Call returned function each frame to add a new value.
-function motec.Writer(props)
-  if type(props) ~= 'table' or type(props.name) ~= 'string' then
-    error('Props argument has to be a table with name property', 2)
-  end
-  return setmetatable({
-    name = props.name,
-    multiplier = props.multiplier or 1,
-    attributes = {
-      shortName = props.shortName and tostring(props.shortName) or props.name,
-      unit = props.unit and tostring(props.unit) or '?',
-      frequency = props.frequency == 'low' and 5 or props.frequency == 'high' and 200 or 100,
-      decimals = tonumber(props.decimals) or 4,
-    }
-  }, writerMt)
+---@return boolean @Returns `true` if any Motec recording is currently active.
+function motec.active()
+  return __util.native("inner.cphys.luaLogger.isActiveGen")
 end
 
 local collectorMt = {
@@ -70,7 +42,7 @@ local collectorMt = {
   }
 }
 
----Create a new telemetry collection helper. Not available to scripts without I/O access.
+---Create a new telemetry collection helper. Scripts without I/O access can only save telemetry in “Documents/AC/telemetry”.
 ---@param carIndex integer @0-based car index. Works only for cars that have custom physics active.
 function motec.TelemetryCollector(carIndex)
   return setmetatable({ carIndex = carIndex }, collectorMt)

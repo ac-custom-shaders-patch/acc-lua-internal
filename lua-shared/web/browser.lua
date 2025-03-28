@@ -13,7 +13,8 @@
 
   function script.windowMain()
     ui.dummy(ui.availableSpace())
-    browser:draw(ui.itemRect(), true)
+    local r1, r2 = ui.itemRect()
+    browser:draw(r1, r2, true)
   end
   ```
 
@@ -1341,6 +1342,12 @@ function webBrowser:pixelDensity()
   return self._pixelDensity
 end
 
+---Added in 0.2.7. A basic regex filtering out some common ad platforms. Pass it to `:blockURLs()` to improve performance a bit.
+---@return string
+function webBrowser.adsFilter()
+  return "^https://(?:(?:(?:www\\.)?(?:datadoghq-browser-agent\\.com|google(?:-analytics|tagmanager|tagservices)\\.com|fastly-insights\\.com|syndicatedsearch\\.goog|tranquilveranda\\.com)|(?:[\\w\\d-]+\\.)(?:1rx\\.io|3lift\\.com|activemetering\\.com|ad(?:nxs\\.com|safeprotected\\.com|trafficquality\\.google|s\\.linkedin\\.com|srvr\\.org)|afcdn\\.net|analytics\\.yahoo\\.com|anonymised\\.io|ay\\.delivery|bfmio\\.com|blueconic\\.net|buysellads\\.com|carbonads\\.com|casalemedia\\.com|chartbeat\\.com|clean\\.gg|cloud(?:flareinsights\\.com|front\\.net)|connatix\\.com|criteo\\.com|crwdcntrl\\.net|cxense\\.com|demdex\\.net|dmgmediaprivacy\\.co\\.uk|dns-finder\\.com|dotmetrics\\.net|double(?:click\\.net|verify\\.com)|ebxcdn\\.com|emxdgt\\.com|eyeota\\.net|fastclick\\.net|fwmrm\\.net|g\\.doubleclick\\.net|geoedge\\.be|getclicky\\.com|go-mpulse\\.net|googlesyndication\\.com|gumgum\\.com|hadronid\\.net|hotjar\\.com|indexww\\.com|imrworldwide\\.com|keywee\\.co|liadm\\.com|localiq\\.com|marketo\\.net|mopinion\\.com|nitro(?:pay\\.com|cnct\\.com)|npttech\\.com|nr-data\\.net|nxt-psh\\.com|omnitagjs\\.com|onedollarstats\\.com|onthe\\.io|openx\\.net|orbsrv\\.com|outbrain\\.com|p-n\\.io|p7cloud\\.net|parsely\\.com|pbxai\\.com|piano\\.io|privacymanager\\.io|pubmatic\\.com|quant(?:cast|count|serve)\\.com|rambler\\.ru|rfihub\\.com|rlcdn\\.com|rlets\\.com|rubiconproject\\.com|s-onetag\\.com|sail-horizon\\.com|scorecardresearch\\.com|script\\.ac|seedtag\\.com|segment\\.(?:com|io)|servenobid\\.com|sitescout\\.com|skcrtxr\\.com|skimresources\\.com|smartocto\\.com|stickyadstv\\.com|tapad\\.com|tinypass\\.com|ujscdn\\.com|userreport\\.com|viafoura\\.co|vntsm\\.com|yieldmo\\.com|wp\\.com)|(?:[\\w\\d-]+\\.)*(?:12ezo5v60\\.com|ad(?:-delivery\\.net|\\.gt|sco\\.re|blockrelief\\.com|skeeper.com|form\\.net)|amazon-adsystem\\.com|amplitude\\.com|antiadblocksystems\\.com|broadstreetads\\.com|bt(?:loader\\.com|message\\.com)|chimpstatic\\.com|fvcwqkkqmuv\\.com|googleadservices\\.com|fwmrm\\.net|hexagon-analytics\\.com|[\\w-]*id5-sync\\.com|isolatedovercomepasted\\.com|kueezrtb\\.com|media\\.net|merequartz\\.com|mmcdn\\.com|nervoussummer\\.com|ofcamerupta\\.com|omtrdc\\.net|permutive\\.(?:app|com)|pncloudfl\\.com|rackcdn\\.com|ragofkanc\\.com|rtmark\\.net|sharethis\\.com|smartadserver\\.com|sonobi\\.com|steadfastsystem\\.com|taboola\\.com|the-ozone-project\\.com|victoriousrequest\\.com|webcontentassessor\\.com|wisepops\\.com|ybs2ffs7v\\.com)|(?:imasdk|ogads-pa)\\.googleapis\\.com|bat\\.bing\\.com|cloudmetrics\\.xenforo\\.com|connect\\.facebook\\.net|ct\\.pinterest\\.com|mc\\.yandex\\.ru|iad\\.anm\\.co\\.uk|insitez\\.blob\\.core\\.windows\\.net|p\\.typekit\\.net|pixel\\.servebom\\.com|pulsar\\.ebay\\.com|strike\\.fox\\.com|webc2s\\.pubgw\\.yahoo\\.com)[:/]|www\\.google\\.com/adsense\\b|w\\w\\w\\.facebook\\.com/plugins/like\\.php|yandex\\.ru/ads|yastatic\\.net/pcode/adfox|wsknow\\.net/jssdk)"
+end
+
 ---Blocks all requests that match given filter. Good for speeding things up. Use `:collectURLs()` if you need to see what are the URLs that are being loaded.
 ---@param regex string? @Regular expression for blocking out some requests. Pass `nil` or an empty string to disable.
 ---@return self
@@ -1373,6 +1380,9 @@ function webBrowser:collectFormData(listener)
   return self
 end
 
+---Fill out a form (primarily, a password form) on the loaded page. Doesn’t submit the form.
+---@param actionURL string @Target URL of the form to fill.
+---@param data table @Keys are for input names, values are for input values.
 function webBrowser:fillForm(actionURL, data)
   if connect.cefState == 0 then
     addCommand(self, CommandBE.FillForm, {actionURL, serializeItem(data, '\1')})
@@ -2015,6 +2025,10 @@ function webBrowser:pageState() return connect.cefState == 0 and not backendUnre
 function webBrowser:loadError()
   return connect.cefState == 0 and self._loadError or nil
 end
+
+---Added in CSP 0.2.7. Checks if browser has a webpage loaded and so can take user input.
+---@return boolean @Returns `true` if browser can receive an input (or `false` if browser is currently displaying a blank page or crashed).
+function webBrowser:interactive() return not self._loadError and not self:blank() and not self:crash() end
 
 ---@return boolean @Returns `true` if browser is forced to be visible.
 function webBrowser:forcedVisible() return self._forceVisible end

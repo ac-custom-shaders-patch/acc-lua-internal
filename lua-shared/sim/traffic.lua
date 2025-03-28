@@ -43,6 +43,7 @@ function traffic.run(params)
   local TrafficConfig = require('TrafficConfig')
   TrafficConfig.driversCount = params.driversCount or 1000
   TrafficConfig.speedMultiplier = params.speedMultiplier or 1
+  ac.debug('TrafficConfig.speedMultiplier', TrafficConfig.speedMultiplier)
   TrafficConfig.carnageMode = params.carnageMode or false
   TrafficConfig.debugBehaviour = false
   TrafficConfig.debugSpawnAround = false
@@ -119,7 +120,7 @@ function traffic.run(params)
         local car = ac.getCar(sim.focusedCar)
         if car ~= nil and not car.extrapolatedMovement then
           -- Hacky fix. Let’s hope we’ll be able to use extrapolated movement soon.
-          dt = dt + (sim.gameTime - ac.getCar(sim.focusedCar).timestamp) / 1e3
+          dt = dt + (sim.time - ac.getCar(sim.focusedCar).timestamp) / 1e3
           dt = math.max(dt, 0.002)
         end
       end

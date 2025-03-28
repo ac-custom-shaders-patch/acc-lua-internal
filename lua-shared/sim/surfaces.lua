@@ -24,4 +24,28 @@ function surfaces.raycastType(pos, dir, length)
   return 'default'
 end
 
+local surfacesIni
+
+---@generic T
+---@param wheel ac.StateWheel @Car wheel state (for example, `ac.getCar(0).wheels[0]`).
+---@param key string @Key of a property from `surfaces.ini`, such as `FRICTION`.
+---@param defaultValue T @Default value returned if there is no value with this key, or there is no valid surface.
+---@return fun(): T @Call function to get the fresh value.
+function surfaces.propertyAccessor(wheel, key, defaultValue)
+  local p = -1
+  local v = defaultValue
+  if not surfacesIni then
+    surfacesIni = ac.INIConfig.trackData('surfaces.ini')
+  end
+  return function ()
+    local i = wheel.surfaceSectionIndex
+    if i ~= p then
+      print(i, key, defaultValue)
+      p = i
+      v = i >= 0 and surfacesIni:get('SURFACE_%s' % i, key, defaultValue) or defaultValue
+    end
+    return v
+  end
+end
+
 return surfaces

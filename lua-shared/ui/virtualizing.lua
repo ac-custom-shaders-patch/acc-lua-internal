@@ -257,8 +257,9 @@ function virtualizing.WrappedList(source, wrapper, render)
 			scrollToBottom = scrollToBottom - 1
       scrolledToBottom = 2
     else
+      local isAtBottom = offset == ui.getScrollMaxY()
       scrolledToBottom = offset > ui.getScrollMaxY() - 5 and 2 or scrolledToBottom - 1
-      if scrolledToBottom > 0 then
+      if scrolledToBottom > 0 and not isAtBottom then
         ui.setScrollY(1e9)
       end
 		end
