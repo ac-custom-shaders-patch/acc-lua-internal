@@ -14,6 +14,11 @@ if Config:get('MISCELLANEOUS', 'DISABLE_CM_HOTKEYS', false) then
   return
 end
 
+-- ui.onDriverNameTag(true, rgbm.colors.transparent, function (car)
+--   ui.drawRectFilled(0, ui.windowSize(), rgbm.colors.red)
+--   ui.text(car:driverName())
+-- end, { mainSize = 4 })
+
 local buttons = {} ---@type {button: ac.ControlButton, action: fun(), delayed: {label: string, icon: string, condition: nil|fun(): boolean}?}[]
 local buttonsCount = 0
 local delayActive = false
@@ -69,42 +74,44 @@ for k, v in pairs{
   __CM_ENGINE_BRAKE = 'Engine Brake',
   __CM_NEXT_APPS_DESKTOP = 'Cycle Virtual Desktop',
 } do
-  local btn = ac.ControlButton(k, nil, {remap = true})
+  local btn = ac.ControlButton(k, nil, k:startsWith('__') and {system = 'shift'} or {remap = true})
   log(string.format('System binding: %s, configured: %s, bound to: %s', k, btn:configured(), btn:boundTo()))
-  btn:onPressed((function (id)
-    local s = ac.trySimKeyPressCommand(id)
+  btn:onPressed((function (id, shift)
+    local s = ac.trySimKeyPressCommand(id, shift == true)
     log('System binding pressed: %s, %s' % {id, s})
   end):bind(v))
 end
 
 ac.ControlButton('__CM_RESET_CAMERA_VR', nil, {remap = true}):onPressed(ac.recenterVR)
 ac.ControlButton('__CM_ABS_DECREASE', nil, {remap = true}):onPressed(function ()
-  local c = ac.getCar(0)
-  ac.setABS(c.absMode == 0 and c.absModes or c.absMode - 1)
+  ac.setABS(Car.absMode == 0 and Car.absModes or Car.absMode - 1)
 end)
 ac.ControlButton('__CM_TRACTION_CONTROL_DECREASE', nil, {remap = true}):onPressed(function ()
-  local c = ac.getCar(0)
-  ac.setTC(c.tractionControlMode == 0 and c.tractionControlModes or c.tractionControlMode - 1)
+  ac.setTC(Car.tractionControlMode == 0 and Car.tractionControlModes or Car.tractionControlMode - 1)
 end)
 ac.ControlButton('__CM_ENGINE_BRAKE_DECREASE', nil, {remap = true}):onPressed(function ()
-  local c = ac.getCar(0)
-  ac.setEngineBrakeSetting(c.currentEngineBrakeSetting == 0 and c.engineBrakeSettingsCount or c.currentEngineBrakeSetting - 1)
+  ac.setEngineBrakeSetting(Car.currentEngineBrakeSetting == 0 and Car.engineBrakeSettingsCount or Car.currentEngineBrakeSetting - 1)
 end)
-ac.ControlButton('__CM_MGU_2', nil, {system = 'ignore'}):onPressed(function ()
-  local u, c = ac.getUI(), ac.getCar(0)
-  if u.ctrlDown and not u.altDown then
-    ac.setMGUKRecovery(u.shiftDown and (c.mgukRecovery == 0 and 10 or c.mgukRecovery - 1) or (c.mgukRecovery + 1) % 11)
+ac.ControlButton('__CM_MGU_2', nil, {system = 'shift'}):onPressed(function ()
+  local u = ac.getUI()
+  ac.setMGUKRecovery(u.shiftDown and (Car.mgukRecovery == 0 and 10 or Car.mgukRecovery - 1) or (Car.mgukRecovery + 1) % 11)
+end)
+ac.ControlButton('__CM_MGU_2_DECREASE', nil, {remap = true}):onPressed(function ()
+  ac.setMGUKRecovery(Car.mgukRecovery == 0 and 10 or Car.mgukRecovery - 1)
+end)
+ac.ControlButton('__CM_MGU_1', nil, {system = 'shift'}):onPressed(function ()
+  local u = ac.getUI()
+  if Car.mgukDeliveryCount > 1 then
+    ac.setMGUKDelivery((u.shiftDown and (Car.mgukDelivery <= 0 and Car.mgukDeliveryCount - 1 or Car.mgukDelivery - 1) or Car.mgukDelivery + 1) % Car.mgukDeliveryCount)
   end
 end)
-ac.ControlButton('__CM_MGU_1', nil, {system = 'ignore'}):onPressed(function ()
-  local u, c = ac.getUI(), ac.getCar(0)
-  if u.ctrlDown and not u.altDown and c.mgukDeliveryCount > 1 then
-    ac.setMGUKDelivery((u.shiftDown and (c.mgukDelivery <= 0 and c.mgukDeliveryCount - 1 or c.mgukDelivery - 1) or c.mgukDelivery + 1) % c.mgukDeliveryCount)
+ac.ControlButton('__CM_MGU_1_DECREASE', nil, {remap = true}):onPressed(function ()
+  if Car.mgukDeliveryCount > 1 then
+    ac.setMGUKDelivery((Car.mgukDelivery <= 0 and Car.mgukDeliveryCount - 1 or Car.mgukDelivery - 1) % Car.mgukDeliveryCount)
   end
 end)
 ac.ControlButton('__CM_MGU_3', nil, {system = true}):onPressed(function ()
-  local c = ac.getCar(0)
-  ac.setMGUHCharging(not c.mguhChargingBatteries)
+  ac.setMGUHCharging(not Car.mguhChargingBatteries)
 end)
 
 local function checkIfDelayIsActive(controls)
@@ -127,7 +134,8 @@ local function refreshButtons()
   end
 
   buttonsCount = 0
-  addButton(ac.ControlButton('__EXT_SIM_PAUSE', ac.GamepadButton.Start, { gamepad = true }):setAlwaysActive(true), function ()
+  local pauseBtn = ac.ControlButton('__EXT_SIM_PAUSE', ac.GamepadButton.Start, { gamepad = true }):setAlwaysActive(true)
+  addButton(pauseBtn, function ()
     if Sim.isInMainMenu then
       ac.tryToStart()
     else

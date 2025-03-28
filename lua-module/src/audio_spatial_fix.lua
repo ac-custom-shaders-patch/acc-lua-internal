@@ -14,7 +14,7 @@ local function tweakAudio(carIndex, key, volumeBoost, minDistance, maxDistance)
   local stored = ac.load(storeKey)
   if not stored then
     stored = ac.CarAudioTweak.getVolume(key)
-    if math.isNaN(stored) then stored = 1 end
+    if math.isnan(stored) then stored = 1 end
     ac.store(storeKey, stored)
   end
   ac.CarAudioTweak.setVolume(key, stored * volumeBoost)

@@ -42,16 +42,14 @@ else
 end
 
 if settings.PIT_SPEED_LIMIT or settings.MANUAL_PIT_SPEED_LIMITER then
-  local car = ac.getCar(0)
   local drawLimiterIcons = Toggle.DrawUI()
-  if not car then return end
 
   Register('gameplay', function ()
-    drawLimiterIcons(forcedLimiterDisabled and car.isInPitlane and settings.PIT_SPEED_LIMIT or car.manualPitsSpeedLimiterEnabled and settings.MANUAL_PIT_SPEED_LIMITER)
+    drawLimiterIcons(forcedLimiterDisabled and Car.isInPitlane and settings.PIT_SPEED_LIMIT or Car.manualPitsSpeedLimiterEnabled and settings.MANUAL_PIT_SPEED_LIMITER)
   end)
 
   Register('drawGameUI', function (dt)
-    if forcedLimiterDisabled and car.isInPitlane and settings.PIT_SPEED_LIMIT then
+    if forcedLimiterDisabled and Car.isInPitlane and settings.PIT_SPEED_LIMIT then
       ui.drawCarIcon(function (size)
         ui.drawCircle(ui.getCursor() + size / 2, size / 2 - 2, rgbm.colors.red, 24, 4)
         ui.pushStyleColor(ui.StyleColor.Text, rgbm.colors.black)
@@ -62,7 +60,7 @@ if settings.PIT_SPEED_LIMIT or settings.MANUAL_PIT_SPEED_LIMITER then
       end, rgbm.colors.white)
     end
 
-    if car.manualPitsSpeedLimiterEnabled and settings.MANUAL_PIT_SPEED_LIMITER then
+    if Car.manualPitsSpeedLimiterEnabled and settings.MANUAL_PIT_SPEED_LIMITER then
       ui.drawCarIcon(ui.Icons.Speedometer, rgbm.colors.white)
     end
   end)

@@ -35,9 +35,9 @@
 -- })
 
 -- ac.debug('here', 'there')
--- local rig0 = VRRig.Remote(ac.getCar(0)) ---@type VRRig.Remote
+-- local rig0 = VRRig.Remote(Car) ---@type VRRig.Remote
 -- -- local rig1 = VRRig.Remote(ac.getCar(2)) ---@type VRRig.Remote
--- local encoder = VRRig.Encoder(ac.getCar(0), nil) ---@type VRRig.Encoder
+-- local encoder = VRRig.Encoder(Car, nil) ---@type VRRig.Encoder
 -- setInterval(function ()
 --   frame = frame + 1
 --   if frame > #data.debugSent then
@@ -81,7 +81,6 @@
 -- end)
 
 if false then
-  local car = ac.getCar(0)
   local carRoot = ac.findNodes('carRoot:0')
   local carRootTransform = carRoot:getWorldTransformationRaw():inverse()
   local driverRoot = carRoot:findNodes('driverRoot:0')
@@ -94,7 +93,7 @@ if false then
   })
 
   setInterval(function ()  
-    neckNode:getWorldTransformationRaw():mulTo(matTmp, car.worldToLocal)
+    neckNode:getWorldTransformationRaw():mulTo(matTmp, Car.worldToLocal)
     matTmp.position:sub(headPos)
 
     ac.debug('base.pos', matTmp.position)
@@ -155,11 +154,10 @@ local function setExtraData()
     rig:data(message)
   end, '$SmallTweaks.ExtraData', {range = 50})
 
-  local car = ac.getCar(0)
   local vr = ac.getVR()
   local evData = evDataFactory()
-  if car and vr then
-    local encoder = VRRig.Encoder(car, vr) ---@type VRRig.Encoder
+  if Car and vr then
+    local encoder = VRRig.Encoder(Car, vr) ---@type VRRig.Encoder
     setInterval(function ()
       if Sim.cameraMode == ac.CameraMode.Cockpit and Sim.focusedCar == 0 and (vr.headActive or vr.hands[0].active or vr.hands[1].active) then
         encoder:encode(evData)

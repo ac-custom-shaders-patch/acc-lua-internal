@@ -11,7 +11,6 @@ if not btn0:configured() and not btn1:configured() and not Sim.isVRMode then
   return
 end
 
-local car = ac.getCar(0) or error()
 local vr = Sim.isVRMode and ac.getVR()
 local trackIR = not vr and ac.getTrackIR()
 
@@ -24,8 +23,8 @@ Register('gameplay', function (dt)
   btnShift = math.applyLag(btnShift, target, 0.92, dt)
 
   local finalValue = btnShift
-  if vr and car.focusedOnInterior then
-    finalValue = finalValue + car.worldToLocal:transformPoint(vr.headTransform.position).x - car.driverEyesPosition.x
+  if vr and Car.focusedOnInterior then
+    finalValue = finalValue + Car.worldToLocal:transformPoint(vr.headTransform.position).x - Car.driverEyesPosition.x
   elseif trackIR then
     finalValue = finalValue + trackIR.position.x
   end

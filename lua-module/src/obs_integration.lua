@@ -312,7 +312,7 @@ local function initOBSIntegration()
 
   addDefaultView('Camera', 'Above', 64 + 128, nil,
     {vec2(640, 640), function (shot, carIndex) 
-    local car = ac.getCar(carIndex) or ac.getCar(0)
+    local car = ac.getCar(carIndex) or Car
     if not car then return end
     local dir = vec3(0, -1, 0):add(car.look)
     shot:update(car.position:clone():addScaled(car.velocity, 0.1):addScaled(dir, -70), dir, nil, 15)
@@ -322,7 +322,7 @@ local function initOBSIntegration()
     if camera then
       addDefaultView('Camera', 'Car %d' % (i + 1), 64 + 128, nil,
         {vec2(640, 640), function (shot, carIndex)
-          local car = ac.getCar(carIndex) or ac.getCar(0)
+          local car = ac.getCar(carIndex) or Car
           if not car then return end
           local pos = car.bodyTransform:transformPoint(camera.transform.position)
           local look = car.bodyTransform:transformVector(camera.transform.look):scale(-1)
@@ -334,7 +334,7 @@ local function initOBSIntegration()
   end
   addDefaultView('Camera', 'Chase', 64 + 128, nil,
     {vec2(640, 640), (function (ctx, shot, carIndex)
-    local car = ac.getCar(carIndex) or ac.getCar(0)
+    local car = ac.getCar(carIndex) or Car
     if not car then return end
     ctx.x = math.applyLag(ctx.x, car.acceleration.x, 0.95, Sim.dt)
     ctx.z = math.applyLag(ctx.z, car.acceleration.z, 0.95, Sim.dt)

@@ -39,6 +39,15 @@ local function carSplineOffset(i)
 end
 
 local aboutToStart = false
+local v3A = vec3()
+local v3B = vec3()
+
+local function carSplineDir(i, shift)
+  local aiCar = ac.getCar(i)
+  ac.trackProgressToWorldCoordinateTo((aiCar.splinePosition + (shift + 20) / Sim.trackLengthM) % 1, v3A, true)
+  ac.trackProgressToWorldCoordinateTo((aiCar.splinePosition + shift / Sim.trackLengthM) % 1, v3B, true)
+  return v3A:sub(v3B):normalize()
+end
 
 Register('core', function (dt)
   local isRace = Sim.raceSessionType == ac.SessionType.Race
@@ -49,12 +58,14 @@ Register('core', function (dt)
     if fixTrajectory then
       local maxOffset = 0.01
       for i = 0, Sim.carsCount - 1 do
-        local value = carSplineOffset(i)
+        local value = math.clamp(carSplineOffset(i), -10, 10)
         maxOffset = math.max(math.abs(value), maxOffset)
-        carOffsets[i] = value
+        carOffsets[i] = {value, carSplineDir(i, 0):clone()}
         physics.setAISplineAbsoluteOffset(i, value, false)
+        ac.debug('AI offset: %s' % i, value)
       end
       carOffsetsApplied = maxOffset
+      ac.debug('Max AI offset', maxOffset)
     end
   end
 
@@ -82,10 +93,11 @@ Register('core', function (dt)
     carOffsetsApplied = math.max(0, carOffsetsApplied - decrease)
     for i = 0, Sim.carsCount - 1 do
       local value = carOffsets[i]
-      if value ~= 0 then
-        value = value > 0 and math.max(0, value - decrease) or math.min(0, value + decrease)
-        carOffsets[i] = value
-        physics.setAISplineAbsoluteOffset(i, value, false)
+      if value[1] ~= 0 then
+        local decreaseBoost = 1 + math.lerpInvSat(carSplineDir(i, 100):dot(value[2]), 0.99, 0.5) * 10
+        value[1] = math.sign(value[1]) * math.max(0, math.abs(value[1]) - decrease * decreaseBoost)
+        physics.setAISplineAbsoluteOffset(i, math.clamp(value[1], -8, 8), false)
+        ac.debug('AI offset: %s' % i, value[1])
       end
     end
   end

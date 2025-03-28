@@ -60,7 +60,7 @@ local function audioCallback()
   modeFn()
   audioTarget = math.saturateN(audioTarget)
   if previousTarget ~= audioTarget and cfg.SHOW_MESSAGE then
-    ac.setSystemMessage('Volume Level', string.format('Volume changed to %.0f%%', audioTarget * 100))
+    ac.setMessage('Volume Level', string.format('Volume changed to %.0f%%', audioTarget * 100))
   end
 
   audioSmooth = math.applyLag(audioSmooth, audioTarget, cfg.TRANSITION_LAG, ac.getDeltaT())

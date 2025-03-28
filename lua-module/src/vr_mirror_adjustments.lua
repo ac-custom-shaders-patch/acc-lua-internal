@@ -11,8 +11,7 @@ if not ConfigVRTweaks or not ConfigVRTweaks:get('CONTROLLERS_INTEGRATION', 'INTE
 end
 
 local vr = ac.getVR()
-local car = ac.getCar(0)
-if not vr or not car then return end
+if not vr then return end
 
 local aabbMin = vec3()
 local aabbMax = vec3()
@@ -59,7 +58,7 @@ local function vrMirror(hand)
     return
   end
 
-  local handPos = car.worldToLocal:transformPoint(vr.hands[hand].transform.position)
+  local handPos = Car.worldToLocal:transformPoint(vr.hands[hand].transform.position)
   if not held then
     held = getHeldMirror(handPos)
     mirrorHeld[hand] = held
@@ -95,7 +94,7 @@ Register('draw3D', function()
       render.setBlendMode(render.BlendMode.AlphaBlend)
       render.setCullMode(render.CullMode.None)
       render.setDepthMode(render.DepthMode.Off)
-      render.rectangle(car.bodyTransform:transformPoint((aabbMin + aabbMax) / 2), car.look, 
+      render.rectangle(Car.bodyTransform:transformPoint((aabbMin + aabbMax) / 2), Car.look, 
         aabbMax.x - aabbMin.x + 0.03, aabbMax.y - aabbMin.y + 0.03, highlightColor)
     end
   end

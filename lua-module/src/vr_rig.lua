@@ -13,11 +13,8 @@ end
 local vr = ac.getVR()
 if vr == nil then return end
 
-local car = ac.getCar(0)
-if car == nil then return end
-
 ---@type VRRig.VR
-local rig = VRRig.VR(car, vr)
+local rig = VRRig.VR(Car, vr)
 
 Register('simUpdate', function (dt)
   if Sim.cameraMode == ac.CameraMode.Cockpit and Sim.focusedCar == 0 then

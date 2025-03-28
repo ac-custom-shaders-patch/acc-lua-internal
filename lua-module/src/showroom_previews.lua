@@ -266,6 +266,7 @@ camera.transform.up = mat4x4.rotation(math.rad(cameraTilt), camera.transform.loo
 camera.fov = cameraFov
 camera.dofFactor = dofDistance >= 0 and 1 or 0
 camera.dofDistance = dofDistance
+-- camera.ownShare = 1
 camera:normalize()
 
 local appliedSteerValue = steerDeg / 30
@@ -294,7 +295,7 @@ local function shotCar(carIndex, callback)
     ac.setCarActive(i, i == carIndex)
   end
   if groundReflection > 0 then
-    __enableMirrorGround__(carIndex, 0.5, 1.6)
+    __enableMirrorGround__(carIndex, 0.5, 1.6, weather.backgroundColor)
   end
   if cameraAlignFn then
     local carID = ac.getCarID(carIndex)
@@ -334,8 +335,8 @@ end
 
 local function approximateSteering()
   if steerDeg == 0 then return end
-  local curAngle = (math.deg(math.atan2(ac.getCar(0).wheels[0].look.x, ac.getCar(0).wheels[0].look.z))
-    + math.deg(math.atan2(ac.getCar(0).wheels[1].look.x, ac.getCar(0).wheels[1].look.z))) / -2
+  local curAngle = (math.deg(math.atan2(Car.wheels[0].look.x, Car.wheels[0].look.z))
+    + math.deg(math.atan2(Car.wheels[1].look.x, Car.wheels[1].look.z))) / -2
   local correction = steerDeg / curAngle
   if correction > 0.01 and correction < 100 then
     appliedSteerValue = appliedSteerValue * math.lerp(1, correction, 0.5)
@@ -375,7 +376,7 @@ Register('core', function (dt)
     ac.setDaytimeLights(false)
     if totalTime >= 0.5 and prevTotalTime < 0.5 then
       if i > 0 then
-        physics.setAITyres(i, ac.getCar(0).compoundIndex)
+        physics.setAITyres(i, Car.compoundIndex)
       end
     end
   end

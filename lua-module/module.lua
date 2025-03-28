@@ -4,6 +4,9 @@
   to subscribe for different events.
 ]]
 
+ac.log('Small Tweaks Lua module is here')
+
+Car = ac.getCar(0) or error()
 Sim = ac.getSim()
 UI = ac.getUI()
 AIRace = not Sim.isOnlineRace and not Sim.isReplayOnlyMode and Sim.carsCount > 1 and not Sim.isShowroomMode
@@ -11,6 +14,7 @@ AIRace = not Sim.isOnlineRace and not Sim.isReplayOnlyMode and Sim.carsCount > 1
 ---@diagnostic disable-next-line: undefined-field
 Config = ac.INIConfig(ac.INIFormat.Extended, _G.__config__ or {}) -- Small Tweaks config is as `__config__` in a compatible form.
 
+ConfigGeneral = ac.INIConfig.cspModule(ac.CSPModuleID.General) ---@type ac.INIConfig?
 ConfigGamepadFX = ac.INIConfig.cspModule(ac.CSPModuleID.GamepadFX) ---@type ac.INIConfig?
 ConfigGUI = ac.INIConfig.cspModule(ac.CSPModuleID.GUI) ---@type ac.INIConfig?
 ConfigVRTweaks = ac.INIConfig.cspModule(ac.CSPModuleID.VRTweaks) ---@type ac.INIConfig?
