@@ -239,7 +239,7 @@ function script.windowMainSettings()
 end
 
 local rescanning = false
-ac.onFolderChanged(ac.getFolder(ac.FolderID.ACApps)..'\\lua', '?', false, function (files)
+ac.onFolderChanged(ac.getFolder(ac.FolderID.ACAppsLua), '?', false, function (files)
   if rescanning then return end
   rescanning = true
   setTimeout(function ()
@@ -313,7 +313,7 @@ end
 
 ac.onSharedEvent('$SmallTweaks.AppShelf.Install', function (app, senderName)
   if type(app) == 'table' and type(app.meta) == 'table' and type(app.meta.id) == 'string' then
-    app.location = ac.getFolder(ac.FolderID.ACApps)..'\\lua\\'..app.meta.id
+    app.location = ac.getFolder(ac.FolderID.ACAppsLua)..'\\'..app.meta.id
     installThirdPartyApp(app, senderName, function (err)
       ac.broadcastSharedEvent('$SmallTweaks.AppShelf.Install.Result', {err = err, installKey = app.installKey})
     end)

@@ -20,7 +20,7 @@ end
 ---@return AppInfo?
 local function createInfo(meta)
   if meta.id:startsWith('.') then return nil end
-  local location = ac.getFolder(ac.FolderID.ACApps)..'\\lua\\'..meta.id
+  local location = ac.getFolder(ac.FolderID.ACAppsLua)..'\\'..meta.id
   local installedManifest = ac.INIConfig.load(location..'\\manifest.ini', ac.INIFormat.Extended)
   local installedVersion = installedManifest:get('ABOUT', 'VERSION', '')
   local domainName = meta.detailsURL and meta.detailsURL:regmatch('(?://)(?:www\\.)?([\\w\\.]+)')
@@ -67,7 +67,7 @@ end
 
 ---@param app AppInfo
 local function refreshApp(app)
-  local location = ac.getFolder(ac.FolderID.ACApps)..'\\lua\\'..app.meta.id
+  local location = ac.getFolder(ac.FolderID.ACAppsLua)..'\\'..app.meta.id
   local installedManifest = ac.INIConfig.load(location..'\\manifest.ini', ac.INIFormat.Extended)
   local installedVersion = installedManifest:get('ABOUT', 'VERSION', '')
   app.installed = #installedVersion > 0 and installedVersion

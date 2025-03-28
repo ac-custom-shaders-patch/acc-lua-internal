@@ -4,35 +4,54 @@ web.get(app.meta.downloadURL, function (err, response)
 
   if not __util.native('_vasi', response.body) then error('Package is damaged') end
 
-  local data = io.loadFromZip(response.body, app.meta.id..'/manifest.ini')
-  if not data then error('Package is damaged') end
+  -- First, extract two main files:
+  local manifestFileData = io.loadFromZip(response.body, app.meta.id..'/manifest.ini')
+  local mainFileData = io.loadFromZip(response.body, app.meta.id..'/'..app.meta.id..'.lua')
+  if not manifestFileData or not mainFileData then error('Package is damaged') end
 
-  local manifest = ac.INIConfig.parse(data, ac.INIFormat.Extended)
+  -- Parse and check manifest:
+  local manifest = ac.INIConfig.parse(manifestFileData, ac.INIFormat.Extended)
   local version = manifest:get('ABOUT', 'VERSION', '')
   if version == '' then error('Package manifest is damaged') end
   if app.installed == version then error('Package is obsolete') end
 
-  io.createDir(app.location)
-  if not io.dirExists(app.location) then error('Failed to create directory') end
+  -- Pause live reloads for apps:
+  __util.native('_plr', true)
+  using(function ()
+    io.createDir(app.location)
+    if not io.dirExists(app.location) then error('Failed to create directory') end
 
-  local destinationPrefix = io.getParentPath(app.location)..'/'
-  local mainFileName = app.meta.id:lower():rep(2, '/')..'.lua'
-  local mainFileData
-  for _, e in ipairs(io.scanZip(response.body)) do
-    local content = io.loadFromZip(response.body, e)
-    if content then
-      ac.log(e, mainFileName)
-      if e:lower() == mainFileName then
-        mainFileData = content
-      else
-        local fileDestination = destinationPrefix..e
-        io.createFileDir(fileDestination)
-        io.save(fileDestination, content)
+    -- Save main file first:
+    if not io.save(app.location..'/'..app.meta.id..'.lua', mainFileData, true) then
+      -- If failed, possibly something is blocking the app being installed, like it currently
+      -- being loaded and its main file being blocked. If so, exit early.
+      -- TODO: Try again after a bit of a delay?
+      error('Failed to save main script file')
+    end
+  
+    -- Go over other files and extract them all one by one:
+    local manifestEntryNameLowecase = app.meta.id:lower()..'/manifest.ini'
+    local mainEntryNameLowecase = app.meta.id:lower():rep(2, '/')..'.lua'
+    for _, e in ipairs(io.scanZip(response.body)) do
+      if e:startsWith(app.meta.id..'/') and e:lower() ~= manifestEntryNameLowecase and e:lower() ~= mainEntryNameLowecase then
+        local content = io.loadFromZip(response.body, e)
+        if content then
+          local fileDestination = app.location..'/'..(e:sub(#app.meta.id + 2))
+          io.createFileDir(fileDestination)
+          if not io.save(fileDestination, content, true) then
+            error('Failed to save file')
+          end
+        end
       end
     end
-  end
-  if not mainFileData then error('Package is damaged') end
-  io.save(destinationPrefix..app.meta.id:rep(2, '/')..'.lua.tmp', mainFileData)
-  io.move(destinationPrefix..app.meta.id:rep(2, '/')..'.lua.tmp', destinationPrefix..app.meta.id:rep(2, '/')..'.lua')
-  worker.result = version
+  
+    -- Last, update manifest: it contains version number, so if anything fails at least app will remain looking as an old app for
+    -- the next attempt:
+    if not io.save(app.location..'/manifest.ini', manifestFileData, true) then
+      error('Failed to save manifest file')
+    end
+    worker.result = version
+  end, function ()
+    __util.native('_plr', false)
+  end)
 end)
