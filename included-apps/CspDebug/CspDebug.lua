@@ -122,6 +122,15 @@ local function controlSceneDetails()
   controlSceneDetail('FFB (pure)', string.format('%.1f%%', defaultCar.ffbPure * 100))
   controlSceneDetail('FFB (final)', string.format('%.1f%%', defaultCar.ffbFinal * 100))
 
+  local ffb1, ffb2, ffbD = ac.getFFBTweaksReport()
+  ac.debug('ffb1', ffb1)
+  ac.debug('ffb2', ffb2)
+  ac.debug('ffbD', ffbD)
+  controlSceneDetail('FFB (tweaks)', (ffb1 or ffb2 or ffbD) and 'altering' or 'not changing')
+  if ui.itemHovered() then
+    ui.setTooltip(string.format('Phase 1: %s\nPhase 2: %s\nDamping: %s', ffb1 and 'yes' or 'no', ffb2 and 'yes' or 'no', ffbD and 'yes' or 'no'))
+  end
+
   if ui.button('set observeDigital 1', vec2(-0.1, 0)) then
     ac.consoleExecute('set observeDigital 1')
   end
@@ -135,6 +144,10 @@ local function controlSceneDetails()
   end
   if ui.button('Toggle replay', vec2(-0.1, 0)) then
     ac.tryToToggleReplay(not ac.getSim().isReplayActive, 30)
+  end
+  if ui.button('Update bound textures', vec2(-0.1, 0)) then
+    -- Do not use this in your code! Very temporary
+    __util.native('dev_update_materials_phase')
   end
 end
 
@@ -1263,3 +1276,9 @@ ac.onRelease(function()
   ac.setPhysicsDebugLines(ac.PhysicsDebugLines.None)
   debugWeatherControl.weatherType = 255
 end)
+
+if io.fileExists(__dirname..'/_test.lua') then
+  require'_test'
+  require'_test_auto'
+end
+
