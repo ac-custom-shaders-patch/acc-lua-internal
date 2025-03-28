@@ -1,12 +1,12 @@
----@class InterialValue
-local InterialValue = class('InterialValue')
+---@class InertialValue
+local InertialValue = class('InertialValue')
 
 ---@param value number
 ---@param mass number
 ---@param drag number
 ---@param limit number
----@return InterialValue
-function InterialValue:initialize(value, mass, drag, limit)
+---@return InertialValue
+function InertialValue:initialize(value, mass, drag, limit)
   self.value = value
   self.velocity = 0
   self.drag = drag
@@ -14,15 +14,15 @@ function InterialValue:initialize(value, mass, drag, limit)
   self.limit = limit or 1
 end
 
-function InterialValue:__tostring()
+function InertialValue:__tostring()
   return '(' .. self.value .. ', vel.=' .. self.velocity .. ')'
 end
 
 ---@param targetValue number
 ---@param dt number
-function InterialValue:update(targetValue, dt)
+function InertialValue:update(targetValue, dt)
   local delta = targetValue - self.value
-  self.velocity = math.applyLag(self.velocity, 0, self.drag, dt) + delta * dt * self.forceMult
+  self.velocity = math.applyLag(self.velocity, 0, self.drag, dt) + delta * math.min(0.1, dt * self.forceMult)
 
   local dValue = self.velocity * dt
   if dValue > 0 then
@@ -33,9 +33,9 @@ function InterialValue:update(targetValue, dt)
 end
 
 ---@param value number
-function InterialValue:reset(value)
+function InertialValue:reset(value)
   self.value = value
   self.velocity = 0
 end
 
-return class.emmy(InterialValue, InterialValue.initialize)
+return class.emmy(InertialValue, InertialValue.initialize)

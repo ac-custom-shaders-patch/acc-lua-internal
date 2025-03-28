@@ -47,6 +47,8 @@ function TrafficCar.allocate(definition)
   _lastIndex = _lastIndex + 1
 
   local root = TrafficContext.carsRoot:createBoundingSphereNode('trafficCar', #vec2(definition.physics.length, definition.physics.width) / 2)
+  root:setVirtualCarFlag(true)
+
   local modelLod = root:loadKN5LOD(definition.lod, definition.main)
   if not modelLod then error('Models are missing') end
   local carPaintMeshes = modelLod:findMeshes('shader:ksPerPixelMultiMap_damage_dirt')
@@ -353,13 +355,13 @@ function TrafficCar:update(dt)
 
   -- Keeping track of lifespan
   local frame = self._frame + 1
-  self._frame = frame
+  self._frame = frame 
   
   -- Measuring distance to camera and choosing current LOD
   if self._lodUpdateDelay > 0 then
     self._lodUpdateDelay = self._lodUpdateDelay - 1
   else
-    self._distanceSquared = self._pos:distanceSquared(sim.cameraPosition)
+    self._distanceSquared = ac.distanceToRenderSquared(self._pos)
     self._lodUpdateDelay = self._distanceSquared > 200^2 and 20 or self._distanceSquared > 80^2 and 10 or 4
     self:updateLODs()
   end

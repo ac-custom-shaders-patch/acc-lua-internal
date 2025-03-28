@@ -158,7 +158,7 @@ function TrafficLane:addIntersectionLink(link)
 end
 
 function TrafficLane:canSpawnAtBeginning()
-  if not self.points[1]:closerToThan(sim.cameraPosition, TrafficConfig.maxSpawnDistance) then
+  if not ac.closerToRenderThan(self.points[1], TrafficConfig.maxSpawnDistance) then
     return false
   end
 
@@ -324,8 +324,8 @@ local function spawnPointFits(pos)
     if not justJumped and pos:closerToThan(sim.cameraPosition, 100) then return false end
     if not pos:closerToThan(sim.cameraPosition, 400) then return false end
   else
-    if not pos:closerToThan(sim.cameraPosition, justJumped and TrafficConfig.distantSpawnFrom or TrafficConfig.distantSpawnTo) then return false end
-    if not justJumped and pos:closerToThan(sim.cameraPosition, TrafficConfig.distantSpawnFrom) then return false end
+    if not ac.closerToRenderThan(pos, justJumped and TrafficConfig.distantSpawnFrom or TrafficConfig.distantSpawnTo) then return false end
+    if not justJumped and ac.closerToRenderThan(pos, TrafficConfig.distantSpawnFrom) then return false end
   end
 
   if _pcar.pos:closerToThan(pos, 10) then return false end

@@ -66,11 +66,11 @@ function TrafficGrid:randomPath(driver)
   -- return path and TrafficGuide(path, driver)
 end
 
+local sim = ac.getSim()
 function TrafficGrid:update(dt)
   self.canFindRandom = 100
-  local cameraPosition = ac.getCameraPosition()
   for i = 1, #self.intersections do
-    self.intersections[i]:update(cameraPosition, dt)
+    self.intersections[i]:update(sim.cameraPosition, dt)
   end
 end
 

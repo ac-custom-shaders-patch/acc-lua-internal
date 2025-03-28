@@ -18,8 +18,7 @@ local TrafficCarPhysics = class('TrafficCarPhysics')
 ---@return TrafficCarPhysics
 function TrafficCarPhysics.allocate(definition)
   local collider = physics.RigidBody(definition.collider, definition.physics.mass, definition.physics.cog or vec3(0, 0.8, 0.2))
-  collider:setDamping(0.9, 0.9)
-  -- collider:setDamping(0, 0)
+  collider:setDamping(0.001, 0.001, true)
   collider:setSemiDynamic(true, true)
   collider:getLastHitIndex()
 

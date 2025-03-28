@@ -17,7 +17,6 @@ local TrafficCarFullLOD = class('TrafficCarFullLOD')
 
 function TrafficCarFullLOD.get(car)
   if _leftToCreate == 0 then return nil end
-  -- if true then return nil end
   _leftToCreate = _leftToCreate - 1
   local pool = table.getOrCreate(_pools, car.definition, Pool)
   return pool:get(function() return TrafficCarFullLOD(car) end, function (lod) lod:assign(car) end)
@@ -36,11 +35,6 @@ function TrafficCarFullLOD:initialize(car)
 
   local carPaint = modelMain:findMeshes('shader:ksPerPixelMultiMap_damage_dirt')
   carPaint:setMaterialsFrom(car:getCarPaintMeshes())
-  -- carPaint:ensureUniqueMaterials()
-  -- carPaint:setMaterialTexture('txDetail', car.bodyColor)
-
-  -- self:setBodyColor(true)
-  -- self:collectNodes()
 
   local body = modelMain:findNodes('BODY')
   local lights = {

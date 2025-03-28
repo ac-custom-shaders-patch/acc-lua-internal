@@ -76,12 +76,26 @@ local function _driverUpdateSpeed(self, dt)
 end
 
 function TrafficDriver:update(dt)
+  local distanceSquared = ac.distanceToRenderSquared(self.pos)
+
   -- ac.perfFrameBegin(2010)
   if self.car ~= nil and self.car:crashed() then
     if self.guide ~= nil and self.guide:detach(false) then
       self.guide = nil
     end
     self.speedKmh = 0
+    if distanceSquared > 2000^2 and not ac.getCar(0).position:closerToThan(self.pos, 2000) then
+      -- reusing .pauseFor because why not
+      if self.pauseFor < 500 then
+        self.pauseFor = self.pauseFor + dt * 500
+      else
+        self.pauseFor = 0
+        self.carFactory:release(self.car)
+        self.car = nil
+      end
+    else
+      self.pauseFor = 0
+    end
     return
   end
   -- ac.perfFrameEnd(2010)
@@ -95,7 +109,6 @@ function TrafficDriver:update(dt)
 
   -- Lower refresh rate for cars further away
   -- ac.perfFrameBegin(2020)
-  local distanceSquared = self.pos:distanceSquared(sim.cameraPosition, 400)
   local farAway = distanceSquared > 100^2 and (distanceSquared > 250^2 or self.guide == nil or not self.guide.maneuvering == ManeuverBase.ManeuverNone or speedKmh < 1)
   if farAway then
     if self._farSkip > 0 then
