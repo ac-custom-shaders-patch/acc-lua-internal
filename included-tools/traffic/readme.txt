@@ -4,7 +4,7 @@ for now).
 To use it:
 
 1. Download missing data and extract data folder to “csp-traffic-tool” (not included by default to keep 
-  CSP more lightweight): https://files.acstuff.ru/shared/TCKo/data.zip. Data contains car models, colliders and
+  CSP more lightweight): https://files.acstuff.club/TCKo/data.zip. Data contains car models, colliders and
   font to generate license plates on fly. Models are LOD C and D of a couple of original cars.
 
   If you would want to add new cars, just use those LODs and move all nodes but wheels to a node “BODY”
@@ -27,7 +27,7 @@ To use it:
   it, click “Tools” and select traffic planner. This tool allows to both edit traffic grid and test it live.
 
   Traffic grid is saved as “traffic.json” next to “surfaces.ini”. If you have track Daikoku Parking by Soyo, 
-  here is a prepared patch: https://files.acstuff.ru/shared/y37I/data.zip
+  here is a prepared patch: https://files.acstuff.club/y37I/data.zip
 
 Whole thing is currently in a pretty rough shape and needs some improvements, but it should work. Also, it’s
 possible to split editor and traffic-running-script and move traffic to act like a track script (it would
