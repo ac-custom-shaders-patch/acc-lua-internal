@@ -29,6 +29,7 @@ if ac.getTrackID() ~= 'driver' then
   end
 end
 
+ac.disableQuickMenuPitstop()
 local aiCars = ac.getSim().carsCount - 1
 if aiCars > 0 then
   for i = 1, aiCars do

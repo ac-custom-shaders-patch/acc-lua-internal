@@ -1,0 +1,3 @@
+Walk around and choose between selected cars. Could be used, for example, to position them and make some unusual screenshots. Use a tool in Objects Inspector to quickly move between cars and save their positions.
+
+The whole thing might have some issues with compatibility with some Lua apps and such. Also, at the moment on larger tracks actual walking might have some performance issues.

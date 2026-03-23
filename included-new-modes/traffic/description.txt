@@ -1,0 +1,3 @@
+In this mode a lot of traffic cars will spawn all around. Their looks and behavior are pretty simple, but there could be thousands of them.
+
+If you want for cars to work on your track, use a tool Objects Inspector to configure traffic on it first, and then add “traffic-planner-ready” tag to your layout with traffic configured. If you want for track to both be usable online and have traffic, make sure to only leave “ALLOW_NEW_MODE_SCRIPTS=1” in its “surfaces.ini” too, without “ALLOW_TOOLS=1” part (once you’ve done editing). 

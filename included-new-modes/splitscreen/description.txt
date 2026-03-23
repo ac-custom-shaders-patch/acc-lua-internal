@@ -1,0 +1,5 @@
+Another experimental mode, should work fine when both cars stay relatively close. Main selected car is going to be on top/left side and use main controls settings (Settings/Assetto Corsa/Controls), opponent car will use selected alternative controls preset.
+
+To play with two mices or gamepads, you can leave controls preset for second car empty. If you want to drive with a wheel and a gamepad, please load wheel preset in AC control settings and set the gamepad preset here. 
+
+CSP should be able to handle cases like DualSense and DualShock, or Nintendo Joycon and regular gamepad, automatically, but if you’re experiencing issues or want to assign gamepads explicitly, please prepare configuration manually and specify gamepad type in Controls settings explicitly.

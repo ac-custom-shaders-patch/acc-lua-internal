@@ -1,0 +1,5 @@
+First, make sure to bind a button to start recording in the main menu. After that, start the race and, once ready, press that button to start the recording.
+
+When you’ll feel it’s time for Revenant to materialize, press that button again.
+
+[i]Make sure to select the same (or very similar) car for the opponent, or it’ll look weird.[/i]

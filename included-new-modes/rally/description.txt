@@ -1,0 +1,3 @@
+Designed for the new Surfaces FX module, this is a new mode for a single rally stage. Works best with Rally Copilot app you can find on App Shelf. Some settings, such as starting gates style, can be tweaked in-game using a Rally Stage app in settings section.
+
+You can find some cars specifically designed for this mode, as well as some rally tracks, [url="https://rallyassettocorsa.com/"]here[/url].

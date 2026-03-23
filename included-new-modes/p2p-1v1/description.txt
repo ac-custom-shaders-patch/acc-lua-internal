@@ -1,0 +1,9 @@
+In this mode, you can connect with a friend and drive together without having to set up a server first. Assetto Corsa will try to establish a direct peer-to-peer connection, or switch to using a custom relay network as a feedback.
+
+To start, choose a track, a car (something both you and your friend have installed), and start a race. You’ll be able to set a connection with your friend through the main menu.
+
+A few tips:
+• Some of Steam API is used for identifying players, exchanging invites and monitoring of your friends activity, so you’d need to own a copy of Assetto Corsa associated with your Steam account for things to work smoothly.
+• Due to the nature of peer-to-peer connections, your IP address might be revealed, so please keep this in mind.
+• Enable Steam integration in CM settings/Integrated and you’ll be able to receive invites from your friends even when you’re not playing Assetto Corsa.
+• This mode uses new experimental live car swap mechanism. Some of the features might not work.
