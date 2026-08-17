@@ -19,16 +19,16 @@ ConfigGamepadFX = ac.INIConfig.cspModule(ac.CSPModuleID.GamepadFX) ---@type ac.I
 ConfigGUI = ac.INIConfig.cspModule(ac.CSPModuleID.GUI) ---@type ac.INIConfig?
 ConfigVRTweaks = ac.INIConfig.cspModule(ac.CSPModuleID.VRTweaks) ---@type ac.INIConfig?
 
-ac.onCSPConfigChanged(ac.CSPModuleID.GamepadFX, __reloadScript__)
-ac.onCSPConfigChanged(ac.CSPModuleID.GUI, __reloadScript__)
-ac.onCSPConfigChanged(ac.CSPModuleID.VRTweaks, __reloadScript__)
+ac.onCSPConfigChanged(ac.CSPModuleID.GamepadFX, __script.reloadScript)
+ac.onCSPConfigChanged(ac.CSPModuleID.GUI, __script.reloadScript)
+ac.onCSPConfigChanged(ac.CSPModuleID.VRTweaks, __script.reloadScript)
 
 if not ConfigGamepadFX:get('BASIC', 'ENABLED', true) then ConfigGamepadFX = nil end
 if not ConfigGUI:get('BASIC', 'ENABLED', true) then ConfigGUI = nil end
 if not ConfigVRTweaks:get('BASIC', 'ENABLED', true) then ConfigVRTweaks = nil end
 
 if AIRace then
-  ac.onCSPConfigChanged(ac.CSPModuleID.NewBehaviour, __reloadScript__)
+  ac.onCSPConfigChanged(ac.CSPModuleID.NewBehaviour, __script.reloadScript)
   ConfigNewBehaviour = ac.INIConfig.cspModule(ac.CSPModuleID.NewBehaviour) ---@type ac.INIConfig?
   if not ConfigNewBehaviour:get('BASIC', 'ENABLED', true) then ConfigNewBehaviour = nil end
 end
@@ -65,7 +65,7 @@ Toggle = {
       state = not state
       local newCounter = draw3DCallbackCounter + (state and 1 or -1)
       if (newCounter > 0) ~= (draw3DCallbackCounter > 0) then
-        __setDraw3DActive__(newCounter > 0) ---@diagnostic disable-line: undefined-global
+        __script.setDraw3DActive(newCounter > 0) ---@diagnostic disable-line: undefined-global
       end
       draw3DCallbackCounter = newCounter
     end
@@ -79,7 +79,7 @@ Toggle = {
       state = not state
       local newCounter = drawUICallbackCounter + (state and 1 or -1)
       if (newCounter > 0) ~= (drawUICallbackCounter > 0) then
-        __setDrawUIActive__(newCounter > 0) ---@diagnostic disable-line: undefined-global
+        __script.setDrawUIActive(newCounter > 0) ---@diagnostic disable-line: undefined-global
       end
       drawUICallbackCounter = newCounter
     end
@@ -120,7 +120,7 @@ end
 
 ac.onSharedEvent('$SmallTweaks.ReloadScript', function (data, senderName, senderType)
   if senderType == 'joypad_assist' or senderType == 'joypad_assist_render' then
-    __reloadScript__()
+    __script.reloadScript()
   end
 end)
 
