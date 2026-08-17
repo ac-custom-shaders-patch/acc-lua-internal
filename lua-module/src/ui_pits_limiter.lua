@@ -7,10 +7,10 @@ if Sim.isShowroomMode or not ConfigGUI then
 end
 
 local forcedLimiterDisabled = false
-local settings = ConfigGUI:mapSection('EXTRA_HUD_ELEMENTS', {
-  PIT_SPEED_LIMIT = false,
-  MANUAL_PIT_SPEED_LIMITER = false,
-  WARN_ABOUT_MANUAL_LIMITER = false,
+local settings = ConfigGUI:mapSection('EXTRA_HUD_ELEMENTS2', {
+  PIT_SPEED_LIMIT = true,
+  MANUAL_PIT_SPEED_LIMITER = true,
+  WARN_ABOUT_MANUAL_LIMITER = true,
 })
 
 ---@param cfg ac.INIConfig
@@ -45,7 +45,7 @@ if settings.PIT_SPEED_LIMIT or settings.MANUAL_PIT_SPEED_LIMITER then
   local drawLimiterIcons = Toggle.DrawUI()
 
   Register('gameplay', function ()
-    drawLimiterIcons(forcedLimiterDisabled and Car.isInPitlane and settings.PIT_SPEED_LIMIT or Car.manualPitsSpeedLimiterEnabled and settings.MANUAL_PIT_SPEED_LIMITER)
+    drawLimiterIcons(forcedLimiterDisabled and Car.isInPitlane and settings.PIT_SPEED_LIMIT or Car.manualPitsSpeedLimiterEnabled and settings.MANUAL_PIT_SPEED_LIMITER and not ac.isKeyDown(ui.KeyIndex.LeftButton))
   end)
 
   Register('drawGameUI', function (dt)
@@ -57,11 +57,11 @@ if settings.PIT_SPEED_LIMIT or settings.MANUAL_PIT_SPEED_LIMITER then
         ui.textAligned(string.format('%.0f', Sim.pitsSpeedLimit), 0.5, size)
         ui.popFont()
         ui.popStyleColor()
-      end, rgbm.colors.white)
+      end, rgbm.colors.white, 'Careful: automatic pit speed limiter is disabled')
     end
 
     if Car.manualPitsSpeedLimiterEnabled and settings.MANUAL_PIT_SPEED_LIMITER then
-      ui.drawCarIcon(ui.Icons.Speedometer, rgbm.colors.white)
+      ui.drawCarIcon(ui.Icons.Speedometer, rgbm.colors.white, 'Manual pit speed limiter is enabled')
     end
   end)
 end

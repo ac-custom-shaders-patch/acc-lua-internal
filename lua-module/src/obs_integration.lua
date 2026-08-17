@@ -118,7 +118,7 @@ local function defaultCallbackYebis(size, drawCallback)
   local canvas, lastD
   return function (d)
     if not canvas then
-      canvas = ui.ExtraCanvas(size, 1, render.AntialiasingMode.YEBIS, render.TextureFormat.R16G16B16A16.Float, render.TextureFlags.Shared)
+      canvas = ui.ExtraCanvas(size, 1, render.AntialiasingMode.SimplifiedYEBIS, render.TextureFormat.R16G16B16A16.Float, render.TextureFlags.Shared)
       canvas:setExposure(30)
       d.handle = canvas:sharedHandle(true)
       setInterval(function ()
@@ -138,12 +138,18 @@ local function defaultCallbackExteriorCamera(size, updateFn, params)
     if shot then
       shot:dispose()
     end
-    shot = ac.GeometryShot(ac.findNodes('sceneRoot:yes'), size, 1, false, render.AntialiasingMode.YEBIS,
+    local quality = Config:get('OBS', 'HIGH_QUALITY', 0)
+    shot = ac.GeometryShot(ac.findNodes('sceneRoot:yes'), size, 1, false, quality == 0 and render.AntialiasingMode.SimplifiedYEBIS or render.AntialiasingMode.YEBIS,
       render.TextureFormat.R16G16B16A16.Float, render.TextureFlags.Shared)
     shot:setBestSceneShotQuality()
-    if Config:get('OBS', 'HIGH_QUALITY', false) then
+    if quality > 0 then
       shot:setShadersType(render.ShadersType.Main)
-      shot:setAlternativeShadowsSet('area')
+      if quality == 2 then
+        shot:setAlternativeShadowsSet('dedicated')
+        shot:setGrass('dedicated')
+      else
+        shot:setAlternativeShadowsSet('area')
+      end
     else
       shot:setShadersType(render.ShadersType.SimplifiedWithLights)
     end
@@ -300,6 +306,7 @@ local function initOBSIntegration()
   addDefaultView('Extra', 'Redirected apps', 2,
     'Use OBS Apps Redirection app in AC (in settings category) to set the list of apps to be redirected here and hidden from the main screen.',
     {vec2(Sim.windowWidth, Sim.windowHeight), function (canvas)
+      canvas:setName('test')
       canvas:copyFrom('dynamic::hud::redirected::1')
       if addRedirectedAppsSettings then
         addRedirectedAppsSettings()
@@ -324,6 +331,7 @@ local function initOBSIntegration()
         {vec2(640, 640), function (shot, carIndex)
           local car = ac.getCar(carIndex) or Car
           if not car then return end
+          ac.forceDetailedCarLOD(car.index)
           local pos = car.bodyTransform:transformPoint(camera.transform.position)
           local look = car.bodyTransform:transformVector(camera.transform.look):scale(-1)
           local up = car.bodyTransform:transformVector(camera.transform.up)
@@ -336,12 +344,18 @@ local function initOBSIntegration()
     {vec2(640, 640), (function (ctx, shot, carIndex)
     local car = ac.getCar(carIndex) or Car
     if not car then return end
-    ctx.x = math.applyLag(ctx.x, car.acceleration.x, 0.95, Sim.dt)
-    ctx.z = math.applyLag(ctx.z, car.acceleration.z, 0.95, Sim.dt)
-    shot:update(car.position - car.look * (8 + ctx.z * 0.5) + car.up * (2 + ctx.z * 0.3) + car.side * (ctx.x * -1), car.look + car.side * (ctx.x * 0.3), nil, 45)
+    ac.forceDetailedCarLOD(car.index)
+    ctx.x = math.applyLag(ctx.x, car.acceleration.x, 0.97, Sim.dt)
+    ctx.z = math.applyLag(ctx.z, car.acceleration.z * 0.5, 0.95, Sim.dt)
+    shot:update(car.position - car.look * (8 + ctx.z * 0.2) + car.up * (1.6 + ctx.z * 0.1) + car.side * (ctx.x * -1), car.look + car.side * (ctx.x * 0.1), nil, 45)
   end):bind({x = 0, z = 0})}, defaultCallbackExteriorCamera)
   addDefaultView('Camera', 'Track camera', 64 + 128, nil,
     {vec2(640, 640), function (shot, carIndex) shot:updateWithTrackCamera(carIndex) end}, defaultCallbackExteriorCamera)
+
+  for i = 0, Sim.trackCamerasSetsCount - 1 do
+    addDefaultView('Camera', 'Track camera %d' % (i + 1), 64 + 128, nil,
+      {vec2(640, 640), function (shot, carIndex) shot:updateWithTrackCamera(carIndex, i) end}, defaultCallbackExteriorCamera)
+  end
 
   ac.broadcastSharedEvent('$SmallTweaks.OBSTextures.Init')
   ac.store('$SmallTweaks.OBSTextures.Initialized', 1)

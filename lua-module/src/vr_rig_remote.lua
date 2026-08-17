@@ -6,185 +6,107 @@
   fingers would wrap around grapped objects properly.
 ]]
 
---[[
-  
-    io.save(ac.getFolder(ac.FolderID.ExtCache)..'/vr_dump.bin', stringify.binary({
-      debugReceived = debugReceived,
-      debugSent = debugSent,
-    }))stringify.binary({
-          handL = evData.handL,
-          handR = evData.handR,
-          head = evData.head,
-          flags = evData.flags,
-          handStateL = evData.handStateL,
-          handStateR = evData.handStateR,
-        })
-]]
--- local data = stringify.binary.tryParse(io.load('C:/test/vr_dump.bin'))
--- ac.debug('debugSent', #data.debugSent)
-
--- local frame = 1
-
--- local conAlt = ac.connect({
---   handL = ac.StructItem.transform(true, true, -1, 1),
---   handR = ac.StructItem.transform(true, true, -1, 1),
---   head = ac.StructItem.transform(true, true, -1, 1),
---   flags = ac.StructItem.byte(),
---   handStateL = ac.StructItem.byte(),
---   handStateR = ac.StructItem.byte(),
--- })
-
--- ac.debug('here', 'there')
--- local rig0 = VRRig.Remote(Car) ---@type VRRig.Remote
--- -- local rig1 = VRRig.Remote(ac.getCar(2)) ---@type VRRig.Remote
--- local encoder = VRRig.Encoder(Car, nil) ---@type VRRig.Encoder
--- setInterval(function ()
---   frame = frame + 1
---   if frame > #data.debugSent then
---     frame = 1
---   end
---   local con = stringify.binary.parse(data.debugSent[frame])
---   ac.debug('con.head', con.head.position)
---   ac.debug('con.handL', con.handL.position)
---   ac.debug('con.handR', con.handR.position)
---   -- local con = ac.connect({
---   --   handL = ac.StructItem.transform(true, true, -1, 1),
---   --   handR = ac.StructItem.transform(true, true, -1, 1),
---   --   head = ac.StructItem.transform(true, true, -1, 1),
---   --   flags = ac.StructItem.byte(),
---   --   handStateL = ac.StructItem.byte(),
---   --   handStateR = ac.StructItem.byte(),
---   -- })
---   -- local h = mat4x4.identity()
---   -- h.position = vec3(math.sin(os.preciseClock() * 5), 0, 0)
---   -- con.flags = 7
---   -- con.handL = mat4x4.identity()
---   -- con.handR = mat4x4.identity()
---   -- con.head = mat4x4.identity()
---   -- con.handL.look = vec3(0, 0, -1)
---   -- con.handR.look = vec3(0, 0, -1)
---   -- con.handL.position = vec3(0.5, math.sin(os.preciseClock() * 3), 0.5)
---   -- con.handR.position = vec3(-0.5, math.sin(os.preciseClock() * 4), 0.5)
---   -- con.head = h
---   -- rig0:data(entry)
---   rig0:data(con)
---   encoder:encode(conAlt)
---   ac.debug('conAlt.head', conAlt.head.position)
---   ac.debug('conAlt.handL', conAlt.handL.position)
---   ac.debug('conAlt.handR', conAlt.handR.position)
---   -- rig1:data(con)
--- end)
-
--- Register('simUpdate', function (dt)
---   rig0:update(dt)
---   -- rig1:update(dt)
--- end)
-
-if false then
-  local carRoot = ac.findNodes('carRoot:0')
-  local carRootTransform = carRoot:getWorldTransformationRaw():inverse()
-  local driverRoot = carRoot:findNodes('driverRoot:0')
-  local neckNode = driverRoot:findNodes('driverNeck:0')
-  local headPos = carRootTransform:transformPoint(driverRoot:findNodes('DRIVER:RIG_Cest'):getWorldTransformationRaw().position):add(vec3(0, 0.28, 0))
-  local matTmp = mat4x4()
-
-  local compressor = ac.connect({
-    head = ac.StructItem.transform(true, true, -1, 1),
-  })
-
-  setInterval(function ()  
-    neckNode:getWorldTransformationRaw():mulTo(matTmp, Car.worldToLocal)
-    matTmp.position:sub(headPos)
-
-    ac.debug('base.pos', matTmp.position)
-
-    compressor.head = matTmp
-    ac.debug('compressed.pos', compressor.head.position)
-  end)
-end
-
-if not Sim.isOnlineRace or not Sim.directUDPMessagingAvailable then
+if not Sim.isOnlineRace and not Sim.isAltOnlineRace or not Sim.directUDPMessagingAvailable then
   return
 end
 
 ---@type VRRig.Remote[]
-local rigs = {}
-setTimeout(Register('simUpdate', function () end))
+local remoteRigs = {}
+
+ac.onCarSwap(-1, function (carIndex) remoteRigs[carIndex] = nil end)
+ac.onClientDisconnected(function (disconnectedCarIndex) remoteRigs[disconnectedCarIndex] = nil end)
 
 local function setExtraData()
-  local debugReceived = {}
-  local debugSent = {}
+  local function getRig(sender)
+    local rig = remoteRigs[sender.index]
+    if not rig then
+      rig = VRRig.Remote(sender)
+      remoteRigs[sender.index] = rig
+    end
+    return rig
+  end
 
-  setInterval(function ()
-    io.save(ac.getFolder(ac.FolderID.ExtCache)..'/vr_dump.bin', stringify.binary({
-      debugReceived = debugReceived,
-      debugSent = debugSent,
-    }))
-  end, 30)
-
-  local ev, evDataFactory = ac.OnlineEvent({
-    -- handL = ac.StructItem.transform(true, true, -1, 1),
-    -- handR = ac.StructItem.transform(true, true, -1, 1),
-    -- head = ac.StructItem.transform(true, true, -1, 1),
-    handL = ac.StructItem.transform(false, false),
-    handR = ac.StructItem.transform(false, false),
-    head = ac.StructItem.transform(false, false),
+  local ev1, ev1DataFactory = ac.OnlineEvent({
+    ac.StructItem.explicit(1, 1),
+    handL = ac.StructItem.transform(true, true, -1, 1),
+    handR = ac.StructItem.transform(true, true, -1, 1),
+    head = ac.StructItem.transform(true, true, -1, 1),
+    packetIndex = ac.StructItem.byte(),
     flags = ac.StructItem.byte(),
     handStateL = ac.StructItem.byte(),
     handStateR = ac.StructItem.byte(),
   }, function (sender, message)
     if not sender or sender.index == 0 then return end
-    local rig = rigs[sender.index]
-    if not rig then
-      rig = VRRig.Remote(sender)
-      rigs[sender.index] = rig
-    end
-
-    table.insert(table.getOrCreate(debugReceived, sender.index, function (callbackData)
-      return {}
-    end), stringify.binary({
-      handL = message.handL,
-      handR = message.handR,
-      head = message.head,
-      flags = message.flags,
-      handStateL = message.handStateL,
-      handStateR = message.handStateR,
-    }))
-
-    rig:data(message)
-  end, '$SmallTweaks.ExtraData', {range = 50})
+    getRig(sender):data(message, false)
+  end, '$SmallTweaks.VRRig', {range = 50})
+  local ev2, ev2DataFactory = ac.OnlineEvent({
+    ac.StructItem.explicit(1, 1),
+    head = ac.StructItem.transform(true, true, -1, 1),
+    packetIndex = ac.StructItem.byte(),
+    flags = ac.StructItem.byte(),
+  }, function (sender, message)
+    if not sender or sender.index == 0 then return end
+    getRig(sender):data(message, true)
+  end, '$SmallTweaks.VRRig', {range = 50})
 
   local vr = ac.getVR()
-  local evData = evDataFactory()
+  local ev1Data, ev2Data = ev1DataFactory(), ev2DataFactory()
   if Car and vr then
     local encoder = VRRig.Encoder(Car, vr) ---@type VRRig.Encoder
-    setInterval(function ()
-      if Sim.cameraMode == ac.CameraMode.Cockpit and Sim.focusedCar == 0 and (vr.headActive or vr.hands[0].active or vr.hands[1].active) then
-        encoder:encode(evData)
+    local prevPosL, prevPosR = vec3(), vec3()
 
-        table.insert(debugSent, stringify.binary({
-          handL = evData.handL,
-          handR = evData.handR,
-          head = evData.head,
-          flags = evData.flags,
-          handStateL = evData.handStateL,
-          handStateR = evData.handStateR,
-        }))
-
-        ev(nil)
+    local sendHandsFor = 0
+    local function shouldSendHands()
+      if not vr.hands[0].active and not vr.hands[1].active then return false end
+      if not vr.hands[0].transform.position:closerToThan(prevPosL, 0.003) then
+        prevPosL:set(vr.hands[0].transform.position)
+        sendHandsFor = 5
       end
-    end, 0.1)
-  end
-
-  Register('simUpdate', function (dt)
-    for _, v in pairs(rigs) do
-      v:update(dt)
+      if not vr.hands[1].transform.position:closerToThan(prevPosR, 0.003) then
+        prevPosR:set(vr.hands[1].transform.position)
+        sendHandsFor = 5
+      end
+      if sendHandsFor > 0 then
+        sendHandsFor = sendHandsFor - 1
+        return true
+      end
+      return false
     end
-  end)
+
+    local prevPacketIndex = 0
+    local sendFn
+    sendFn = function ()
+      if Sim.cameraMode == ac.CameraMode.Cockpit and Sim.focusedCar == 0 or VRRIG_DEBUG_MODE then
+        local hands = shouldSendHands()
+        if vr.headActive or hands then
+          prevPacketIndex = (prevPacketIndex + 1) % 256
+          if hands then
+            encoder:encode(ev1Data, false)
+            ev1Data.packetIndex = prevPacketIndex
+            ev1(nil)
+          else
+            encoder:encode(ev2Data, true)
+            ev2Data.packetIndex = prevPacketIndex
+            ev2(nil)
+          end
+          setTimeout(sendFn, hands and 0.05 or 0.1)
+          return
+        end
+      end
+        setTimeout(sendFn, 0.2)
+    end
+    setTimeout(sendFn, 1)
+  end
 end
 
+Register('simUpdate', function (dt)
+  for _, v in pairs(remoteRigs) do
+    v:update(dt)
+  end
+end)
+
 ac.onOnlineWelcome(function (message, config)
-  if config:get('EXTRA_DATA', 'VR_DEV', false) then
+  if config:get('EXTRA_DATA', 'VR', false) then
     setExtraData()
   end
 end)

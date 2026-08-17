@@ -79,19 +79,19 @@ local function setMetadata(carIndex)
   local carDirectory = ac.getFolder(ac.FolderID.ContentCars)..'/'..ac.getCarID(carIndex)
   local skinData = JSON.parse(io.load(carDirectory..'/skins/'..ac.getCarSkinID(carIndex)..'/ui_skin.json'))
   if skinData and skinData.author then
-    __setMetadataAuthorName__(skinData.author)
+    __script.setMetadataAuthorName(skinData.author)
   elseif ac.getCar(carIndex).isKunosCar then
-    __setMetadataAuthorName__('Kunos')
+    __script.setMetadataAuthorName('Kunos')
   else
     local carData = JSON.parse(io.load(carDirectory..'/ui/ui_car.json'))
     if carData and carData.author then
-      __setMetadataAuthorName__(carData.author)
+      __script.setMetadataAuthorName(carData.author)
     else
-      __setMetadataAuthorName__('')
+      __script.setMetadataAuthorName('')
     end
   end
   local skinName = skinData and skinData.name or tweakSkinName(ac.getCarSkinID(carIndex))
-  __setMetadataSubjectName__(string.format('%s - %s', ac.getCarName(carIndex), skinName))
+  __script.setMetadataSubjectName(string.format('%s - %s', ac.getCarName(carIndex), skinName))
 end
 
 local cameraAlignFn
@@ -113,7 +113,7 @@ local function parseColor(color)
   end
 end
 
-local preset = __getPreviewsGenerationPreset__()
+local preset = __script.getPreviewsGenerationPreset()
 if preset then
   local style = JSON.parse(preset)
   cameraPos = vec3.new(style.CameraPosition)
@@ -181,15 +181,15 @@ if preset then
   weather.shadowsOpacity = style.CarShadowsOpacity
   weather.fakeReflection = not style.Showroom or style.Showroom == ''
   if weather.fakeReflection then
-    __disableFakeShadowsReprojection__()
+    __script.disableFakeShadowsReprojection()
     groundReflection = style.FlatMirror and style.FlatMirrorReflectiveness or 0
   end
 
   if style.ReflectionCubemapAtCamera == false then
-    __setCubemapForFocusedCar__(true)
+    __script.setCubemapForFocusedCar(true)
   end
   if style.UsePcss then
-    __setAccumulationBlurShadowsAmount__(style.PcssLightScale * 0.5)
+    __script.setAccumulationBlurShadowsAmount(style.PcssLightScale * 0.5)
   end
   if style['Lightθ'] and style['Lightφ'] then 
     weather.lightDirection = anglesToVec3(math.rad(style['Lightθ']), math.rad(style['Lightφ']))
@@ -269,7 +269,7 @@ camera.dofDistance = dofDistance
 -- camera.ownShare = 1
 camera:normalize()
 
-local appliedSteerValue = steerDeg / 30
+local appliedSteerValue = math.clampN(steerDeg / 30, -0.05, 0.05)
 for i = 0, Sim.carsCount - 1 do
   local car = ac.getCar(i)
   local offset = -car.graphicsOffset
@@ -278,7 +278,7 @@ for i = 0, Sim.carsCount - 1 do
   end
   physics.setCarPosition(i, offset, vec3(0, 0, -1))
   physics.disableCarCollisions(i)
-  physics.overrideSteering(i, math.clampN(appliedSteerValue, -1, 1))
+  physics.overrideSteering(i, appliedSteerValue)
 end
 
 local function detectImageType(filename)
@@ -295,7 +295,7 @@ local function shotCar(carIndex, callback)
     ac.setCarActive(i, i == carIndex)
   end
   if groundReflection > 0 then
-    __enableMirrorGround__(carIndex, 0.5, 1.6, weather.backgroundColor)
+    __script.enableMirrorGround(carIndex, 0.5, 1.6, weather.backgroundColor)
   end
   if cameraAlignFn then
     local carID = ac.getCarID(carIndex)
@@ -314,7 +314,7 @@ local function shotCar(carIndex, callback)
       io.move(tmpDestination, destination)
       ac.setCarActive(carIndex, false)
       if groundReflection > 0 then
-        __enableMirrorGround__(-1)
+        __script.enableMirrorGround(-1)
       end
       callback()
     end)
@@ -339,9 +339,10 @@ local function approximateSteering()
     + math.deg(math.atan2(Car.wheels[1].look.x, Car.wheels[1].look.z))) / -2
   local correction = steerDeg / curAngle
   if correction > 0.01 and correction < 100 then
-    appliedSteerValue = appliedSteerValue * math.lerp(1, correction, 0.5)
+    appliedSteerValue = appliedSteerValue * math.lerp(1, correction, 0.1)
     physics.overrideSteering(0, math.clampN(appliedSteerValue, -1, 1))
   end
+  physics.awakeCar(0)
 end
 
 local frameCounter = 0
@@ -358,7 +359,7 @@ Register('core', function (dt)
     approximateSteering()
   end
   if totalTime >= 1 and prevTotalTime < 1 then
-    __fixCarsInPlace__()
+    __script.fixCarsInPlace()
     rootNodes:setVisible(true)
 
     setTimeout(function ()

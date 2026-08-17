@@ -11,3 +11,5 @@ obj
 deps
 *.xsd
 included-cars/android_auto/res/_favicon*
+lua-module/.build
+lua-module/alt

@@ -164,7 +164,7 @@ local function awake()
     if con.playing ~= playingNow then
       playingNow = con.playing
       if not mediaPlayer then
-        mediaPlayer = ui.MediaPlayer():setAutoPlay(true)
+        mediaPlayer = ui.MediaPlayer(nil, { musicSource = true }):setAutoPlay(true)
       end
       local url = byID[con.playing] and byID[con.playing].url
       mediaPlayer:setSource(url)

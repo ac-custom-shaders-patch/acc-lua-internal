@@ -66,8 +66,10 @@ function script.fetch()
   local cVideo = ac.INIConfig.load(ac.getFolder(ac.FolderID.Cfg)..'\\video.ini', ac.INIFormat.Default)
   local cExtra = ac.INIConfig.cspModule(ac.CSPModuleID.ExtraFX)
   local cGraphics = ac.INIConfig.cspModule(ac.CSPModuleID.GraphicsAdjustments)
+  local cGUI = ac.INIConfig.cspModule(ac.CSPModuleID.GUI)
   local cReflections = ac.INIConfig.cspModule(ac.CSPModuleID.ReflectionsFX)
   local cMirror = ac.INIConfig.cspModule(ac.CSPModuleID.SmartMirror)
+  local cLights = ac.INIConfig.cspModule(ac.CSPModuleID.LightingFX)
   local cGrass = ac.INIConfig.cspModule(ac.CSPModuleID.GrassFX)
   local cParticles = ac.INIConfig.cspModule(ac.CSPModuleID.ParticlesFX)
   local cRain = ac.INIConfig.cspModule(ac.CSPModuleID.RainFX)
@@ -89,7 +91,7 @@ function script.fetch()
       and cMirror:get('PERFORMANCE', 'SKIP_FRAMES', 0) == 0 then
       suggest('Extrapolate mirrors',
         'Instead of rendering mirrors content every frame, skip each second frame and instead reproject reflection to keep things smooth.',
-        {adj = 'Mirrors/Real mirror ?`0.5,0.6', fn = fix(cMirror, 'PERFORMANCE', 'SKIP_FRAMES', 1), impact = Impact.Low})
+        {adj = '?Mirrors/Real mirror ?`0.5,0.6', fn = fix(cMirror, 'PERFORMANCE', 'SKIP_FRAMES', 1), impact = Impact.Low})
     end
   end
 
@@ -97,49 +99,71 @@ function script.fetch()
     if cVideo:get('POST_PROCESS', 'FXAA', false) and cGraphics:get('ANTIALIASING', 'MODE', '') == 'DEFAULT' then
       suggest('Switch to FXAA 3.11',
         'Compared to original FXAA, v3.11 runs faster and improves quality. Alternatively, you can use CMAA2 for sharper image.',
-        {adj = 'Post-processing anti-aliasing/Custom replacement/FXAA (original)`1,0.6', fn = fix(cGraphics, 'ANTIALIASING', 'MODE', 'FXAA3'), impact = Impact.Low})
+        {adj = '?Post-processing anti-aliasing/Custom replacement/FXAA (original)`1,0.6', fn = fix(cGraphics, 'ANTIALIASING', 'MODE', 'FXAA3'), impact = Impact.Low})
     end
+  end
+
+  if cLights:get('SHADOWS', 'ENABLED', false) then
+    suggest('Disable dynamic shadows',
+      'Preparing all of those extra shadow maps takes a bit of time.',
+      {adj = '?Dynamic shadows`0,0', fn = fix(cLights, 'SHADOWS', 'ENABLED', false), impact = Impact.Big})
+  end
+
+  if cGraphics:get('RENDER_SCALE', 'SCALE', 1) ~= 1 and cGraphics:get('RENDER_SCALE', 'QUALITY', 1) == 2 then
+    suggest('Disable Lanczos filtering for stretching',
+      'While Lanczos interpolation improves quality a bit, it costs a lot more than bicubic.',
+      {adj = '?/Custom stretching`1,0.3', fn = fix(cGraphics, 'RENDER_SCALE', 'QUALITY', 1), impact = Impact.Low})
+  end
+
+  if cGUI:get('NEW_UI', 'SIMPLIFIED_RENDER', 0) == 3 then
+    suggest('Switch to simpler UI composing',
+      'Not as fancy, but faster.',
+      {adj = '?/UI effects`0,0', fn = fix(cGraphics, 'NEW_UI', 'SIMPLIFIED_RENDER', 0), impact = Impact.Medium})
+  elseif cGUI:get('NEW_UI', 'SIMPLIFIED_RENDER', 0) == 0 then
+    suggest('Switch to simplest UI composing',
+      'The simplest, but the fastest.',
+      {adj = '?/Final mix`1,0.6', fn = fix(cGraphics, 'NEW_UI', 'SIMPLIFIED_RENDER', 1), impact = Impact.Big})
   end
 
   if cVideo:get('VIDEO', 'WIDTH', 1920) > 2000 and cGraphics:get('RENDER_SCALE', 'SCALE', 1) == 1 then
     suggest('Reduce render scale',
       'Rendering AC and its UI in lower resolution can help with FPS and scale.',
-      {adj = 'Final image/?`1,0.5', fn = fix(cGraphics, 'RENDER_SCALE', 'SCALE', 0.7), impact = Impact.Medium})
+      {adj = '?Final image/?`1,0.5', fn = fix(cGraphics, 'RENDER_SCALE', 'SCALE', 0.7), impact = Impact.Medium})
   end
 
   if cRain:get('BASIC', 'ENABLED', false) then
     if cRain:get('VISUAL_TWEAKS', 'RAIN_MAPS_QUALITY', 1) == 2 then
       suggest('Reduce rain maps quality',
         'Drops running down on glossy surfaces would look a bit worse, but it can save a lot of time.',
-        {adj = 'Preparation/Post-traverse processing/RainFX/Surface drop maps`1,0.5', fn = fix(cRain, 'VISUAL_TWEAKS', 'RAIN_MAPS_QUALITY', 1), impact = Impact.Low})
+        {adj = '?Preparation/Post-traverse processing/RainFX/Surface drop maps`1,0.5', fn = fix(cRain, 'VISUAL_TWEAKS', 'RAIN_MAPS_QUALITY', 1), impact = Impact.Low})
     else
       suggest('Reduce rain maps quality more',
         'Rendering AC and its UI in lower resolution can help with FPS and scale.',
-        {adj = 'Preparation/Post-traverse processing/RainFX/Surface drop maps`1,0.5', fn = fix(cRain, 'VISUAL_TWEAKS', 'RAIN_MAPS_QUALITY', 0), impact = Impact.Medium})
+        {adj = '?Preparation/Post-traverse processing/RainFX/Surface drop maps`1,0.5', fn = fix(cRain, 'VISUAL_TWEAKS', 'RAIN_MAPS_QUALITY', 0), impact = Impact.Big})
     end
   end
 
   if cExtra:get('BASIC', 'ENABLED', false) then
     suggest('Disable ExtraFX',
       'All these post-processing effects like screen-space reflections, HBAO+ and such require a separate render pass, so things can get expensive.',
-      {adj = 'Final image/ExtraFX`0,0;Frame preparation/Light map for ExtraFX bounced light`0,0', fn = fix(cExtra, 'BASIC', 'ENABLED', false), impact = Impact.Big})
+      {adj = '?Final image/ExtraFX`0,0;Frame preparation/Light map for ExtraFX bounced light`0,0', fn = fix(cExtra, 'BASIC', 'ENABLED', false), impact = Impact.Big})
   end
 
   if cGrass:get('BASIC', 'ENABLED', false) then
     if cGrass:get('BASIC', 'QUALITY', 2) == 4 then
       suggest('Reduce grass quality',
         'Slightly reduce grass distance and density.',
-        {adj = 'Preparation/Post-traverse processing/GrassFX generation`1,0.8', fn = fix(cGrass, 'BASIC', 'QUALITY', 3), impact = Impact.Low})
+        {adj = '?Preparation/Post-traverse processing/GrassFX generation`1,0.8', fn = fix(cGrass, 'BASIC', 'QUALITY', 3), impact = Impact.Low})
     end
     if cGrass:get('RENDERING', 'CAST_SHADOWS', false) then
       suggest('Disable grass shadows',
         'Might look worse, especially with high grass on sunsets.',
-        {adj = 'Sun shadows/Cascade ?/GrassFX`0,0', fn = fix(cGrass, 'RENDERING', 'CAST_SHADOWS', false), impact = Impact.Medium})
+        {adj = '?Sun shadows/Cascade ?/GrassFX`0,0', fn = fix(cGrass, 'RENDERING', 'CAST_SHADOWS', false), impact = Impact.Medium})
     end
     if cExtra:get('BASIC', 'ENABLED', false) and cGrass:get('RENDERING', 'EXTRAFX_PASS', false) then
       suggest('Disable ExtraFX integration for GrassFX',
         'Can introduce some artefacts when looking through high grass, but won’t be noticeable in most cases.',
-        {adj = 'Final image/ExtraFX/G-buffer/GrassFX`0,0', fn = fix(cGrass, 'RENDERING', 'EXTRAFX_PASS', false), impact = Impact.Medium})
+        {adj = '?/ExtraFX/G-buffer/GrassFX`0,0', fn = fix(cGrass, 'RENDERING', 'EXTRAFX_PASS', false), impact = Impact.Medium})
     end
   end
 
@@ -148,7 +172,7 @@ function script.fetch()
     if cParticles:get('SMOKE', downscalingKey, false) then
       suggest('Reduce smoke resolution',
         'Rendering smoke in half resolution can greatly help with performance.',
-        {adj = 'Final image/Main pass/Transparent/Events/ParticlesFX/Smoke`1,0.0.5', fn = fix(cParticles, 'SMOKE', downscalingKey, true), impact = sim.isVRConnected and Impact.Big or Impact.Low})
+        {adj = '?/Main pass/?/ParticlesFX/Smoke`1,0.0.5', fn = fix(cParticles, 'SMOKE', downscalingKey, true), impact = sim.isVRConnected and Impact.Big or Impact.Low})
     end
   end
 
@@ -156,12 +180,12 @@ function script.fetch()
     if not cShadows:get('NO_CAR_SHADOWS_IN_THIRD_CASCADE', 'INTERIOR_VIEW', false) then
       suggest('Disable interior car shadows in third cascade',
         'With this option distant cars won’t cast shadows. Affects interior cameras.',
-        {adj = 'Sun shadows/Cascade 3/Cars`0,0', fn = fix(cShadows, 'NO_CAR_SHADOWS_IN_THIRD_CASCADE', 'INTERIOR_VIEW', false), impact = Impact.Low})
+        {adj = '?Sun shadows/Cascade 3/Cars`0,0', fn = fix(cShadows, 'NO_CAR_SHADOWS_IN_THIRD_CASCADE', 'INTERIOR_VIEW', false), impact = Impact.Low})
     end
     if not cShadows:get('NO_CAR_SHADOWS_IN_THIRD_CASCADE', 'EXTERIOR_VIEW', false) then
       suggest('Disable exterior car shadows in third cascade',
         'With this option distant cars won’t cast shadows. Affects exterior cameras.',
-        {adj = 'Sun shadows/Cascade 3/Cars`0,0', fn = fix(cShadows, 'NO_CAR_SHADOWS_IN_THIRD_CASCADE', 'EXTERIOR_VIEW', false), impact = Impact.Low})
+        {adj = '?Sun shadows/Cascade 3/Cars`0,0', fn = fix(cShadows, 'NO_CAR_SHADOWS_IN_THIRD_CASCADE', 'EXTERIOR_VIEW', false), impact = Impact.Low})
     end
   end
 end

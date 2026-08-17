@@ -131,9 +131,9 @@ end
 ---@param dt number
 ---@param driverModelUpdated boolean
 ---@return boolean
-function DriverHand:update(carIndex, vrHand, dt, driverModelUpdated)
+function DriverHand:update(carIndex, vrHand, dt, driverModelUpdated, i)
   -- local vrHand = vr.hands[self.index]
-  if not vrHand.active then
+  if not vrHand.active and self.activeTransition < 0.001 then
     if self.lastPos then
       self.lastPos = nil
       self.activatingCounter = 0
@@ -170,10 +170,15 @@ function DriverHand:update(carIndex, vrHand, dt, driverModelUpdated)
   if self.activeFor > 0 then
     self.activeFor = self.activeFor - dt
   end
+
+  local wasActive = self.activeTransition >= 0.001
   self.activeTransition = math.applyLag(self.activeTransition, self.activeFor > 0 and 1 or 0, 0.75, dt)
 
   if self.activeTransition < 0.001 then
-    return false
+    if wasActive and not driverModelUpdated then
+      ac.updateDriverModel(carIndex, true)
+    end
+    return wasActive
   end
 
   if not driverModelUpdated then
@@ -296,20 +301,29 @@ function VRRig.VR:update(dt)
   self.handR:update(self.car.index, self.vr.hands[1], dt, driverModelUpdated)
 end
 
+local function getActualTransform(n)
+  local t = nil
+  while n and #n > 0 do
+    t = (t and t or mat4x4.identity()):mulSelf(n:getTransformationRaw())
+    n = n:getParent()
+  end
+  return t
+end
+
 ---@param car ac.StateCar
 local function collectReferencePoints(car)
   -- Done this way, we can send local coordinates instead of global meaning it’ll function normally independent of car movement,
   -- but also with coordinates close to their initial points we can store position in 3 bytes and it should be enough.
   local carRoot = ac.findNodes('carRoot:'..car.index)
-  local carRootTransform = carRoot:getWorldTransformationRaw():inverse()
+  local carRootTransform = car.worldToLocal
   local driverRoot = carRoot:findNodes('driverRoot:'..car.index)
   local neck = driverRoot:findNodes('driverNeck:'..car.index)
   return {
-    shoulderPosL = carRootTransform:transformPoint(driverRoot:findNodes('DRIVER:RIG_Shoulder_L'):getWorldTransformationRaw().position),
-    shoulderPosR = carRootTransform:transformPoint(driverRoot:findNodes('DRIVER:RIG_Shoulder_R'):getWorldTransformationRaw().position),
-    headPos = carRootTransform:transformPoint(driverRoot:findNodes('DRIVER:RIG_Cest'):getWorldTransformationRaw().position):add(vec3(0, 0.28, 0)),
+    shoulderPosL = carRootTransform:transformPoint(getActualTransform(driverRoot:findNodes('DRIVER:RIG_Shoulder_L')).position),
+    shoulderPosR = carRootTransform:transformPoint(getActualTransform(driverRoot:findNodes('DRIVER:RIG_Shoulder_R')).position),
+    headPos = carRootTransform:transformPoint(getActualTransform(driverRoot:findNodes('DRIVER:RIG_Cest')).position):add(vec3(0, 0.28, 0)),
     neckNode = neck,
-    neckBaseTransform = neck:getWorldTransformationRaw():mul(carRootTransform)
+    neckBaseTransform = getActualTransform(neck):mulSelf(carRootTransform)
   }
 end
 
@@ -349,27 +363,43 @@ function VRRig.Remote:initialize(car)
   end
 end
 
----@param out ac.StateVRHand|{baseTransform: mat4x4}
+---@param out ac.StateVRHand|{baseTransform: mat4x4, triggerHandTarget: number, triggerIndexTarget: number}
 ---@param transform mat4x4
 ---@param state integer
 local function syncHandState(out, transform, state)
   out.baseTransform:set(transform)
-  out.triggerHand = state % 16 / 15
-  out.triggerIndex = math.floor(state / 16) / 15
+  out.triggerHandTarget = state % 16 / 15
+  out.triggerIndexTarget = math.floor(state / 16) / 15
 end
 
----@alias EncodedRig {handL: mat4x4, handR: mat4x4, head: mat4x4, flags: integer, handStateL: integer, handStateR: integer}
+---@alias EncodedRig {handL: mat4x4, handR: mat4x4, head: mat4x4, flags: integer, handStateL: integer, handStateR: integer, packetIndex: integer}
 ---@param ev EncodedRig
-function VRRig.Remote:data(ev)
+function VRRig.Remote:data(ev, headOnly)
+  if self.lastPacketIndex and os.preciseClock() - self.lastSyncTime < 1 then
+    if ev.packetIndex == self.lastPacketIndex
+      or ev.packetIndex < self.lastPacketIndex and ev.packetIndex > self.lastPacketIndex - 10 then
+      -- Dropping out-of-order packet
+      ac.debug('Out-of-order VR rig packet', {ev.packetIndex, self.lastPacketIndex})
+      return
+    end
+  end
+
+  self.lastPacketIndex = ev.packetIndex
   self.lastSyncTime = os.preciseClock()
   self.baseHeadTransform:set(ev.head)
   self.baseHeadTransform.position:add(self.refs.headPos)
   
-  syncHandState(self.vrHands[1], ev.handL, ev.handStateL)
-  syncHandState(self.vrHands[2], ev.handR, ev.handStateR)
-  self.vrHands[1].baseTransform.position:add(self.refs.shoulderPosL)
-  self.vrHands[2].baseTransform.position:add(self.refs.shoulderPosR)
-
+  if not headOnly then
+    syncHandState(self.vrHands[1], ev.handL, ev.handStateL)
+    syncHandState(self.vrHands[2], ev.handR, ev.handStateR)
+    self.vrHands[1].baseTransform.position:add(self.refs.shoulderPosL)
+    self.vrHands[2].baseTransform.position:add(self.refs.shoulderPosR)
+  else
+    self.vrHands[1].triggerHandTarget = 0
+    self.vrHands[1].triggerIndexTarget = 0
+    self.vrHands[2].triggerHandTarget = 0
+    self.vrHands[2].triggerIndexTarget = 0
+  end
   self.headActive = bit.band(ev.flags, 1) ~= 0
   self.vrHands[1].active = bit.band(ev.flags, 2) ~= 0
   self.vrHands[2].active = bit.band(ev.flags, 4) ~= 0
@@ -385,33 +415,35 @@ function VRRig.Remote:update(dt)
   local stillFresh = os.preciseClock() - self.lastSyncTime < 2
 
   if self.headActive and stillFresh then
-    lerpMat4x4(self.smoothHeadTransform, self.smoothHeadTransform, self.baseHeadTransform, 0.15)
+    lerpMat4x4(self.smoothHeadTransform, self.smoothHeadTransform, self.baseHeadTransform, 0.2)
   else
-    lerpMat4x4(self.smoothHeadTransform, self.smoothHeadTransform, self.refs.neckBaseTransform, 0.15)
+    lerpMat4x4(self.smoothHeadTransform, self.smoothHeadTransform, self.refs.neckBaseTransform, 0.2)
   end
   self.smoothHeadTransform:mulTo(self.headTransform, self.car.bodyTransform)
 
   for i = 1, 2 do
-    if not stillFresh then
-      self.vrHands[i].active = false
-    end
-
-    lerpMat4x4(self.vrHands[i].smoothTransform, self.vrHands[i].smoothTransform, self.vrHands[i].baseTransform, 0.15)
+    lerpMat4x4(self.vrHands[i].smoothTransform, self.vrHands[i].smoothTransform, self.vrHands[i].baseTransform, 0.3)
     self.vrHands[i].smoothTransform:mulTo(matTmp, self.car.bodyTransform)
     self.vrHands[i].transform:set(matTmp)
-    self.gHands[i].activeFor = self.vrHands[i].active and 10 or 0
+    self.vrHands[i].triggerHand = math.lerp(self.vrHands[i].triggerHand, self.vrHands[i].triggerHandTarget or 0, 0.3)
+    self.vrHands[i].triggerIndex = math.lerp(self.vrHands[i].triggerIndex, self.vrHands[i].triggerIndexTarget or 0, 0.3)
   end
 
-  if self.car.distanceToCamera < 400 and not self.car.focusedOnInterior then
-    local driverModelUpdated = self.gHands[1]:update(self.car.index, self.vrHands[1], dt, false)
-    self.gHands[2]:update(self.car.index, self.vrHands[2], dt, driverModelUpdated)
-
+  if self.car.distanceToCamera < 400 then
+    local driverModelUpdated = self.gHands[1]:update(self.car.index, self.vrHands[1], dt, false, 1)
+    driverModelUpdated = self.gHands[2]:update(self.car.index, self.vrHands[2], dt, driverModelUpdated, 2) or driverModelUpdated
     self.headTransform:mulTo(
       self.refs.neckNode:getTransformationRaw(),
       self.refs.neckNode:getParent():getWorldTransformationRaw():inverse())
+    if not driverModelUpdated then
+      -- Calling this function postpones its update next frame. Without it, our `self.headTransform` alteration will be lost.
+      ac.updateDriverModel(self.car.index, true)
+    end
     self.applied = true
   elseif self.applied then
     self.applied = false
+    self.gHands[1].activeTransition = 0
+    self.gHands[2].activeTransition = 0
     ac.updateDriverModel(self.car.index)
   end
 end
@@ -428,12 +460,12 @@ function VRRig.Encoder:initialize(car, vr)
 end
 
 ---@param out EncodedRig
-function VRRig.Encoder:encode(out)
+function VRRig.Encoder:encode(out, headOnly)
   local vr = self.vr
   local flags = (not vr or vr.headActive) and 1 or 0
-  if vr then
-    if vr.hands[0].active then flags = flags + 2 end
-    if vr.hands[1].active then flags = flags + 4 end
+  if vr.hands[0].active then flags = flags + 2 end
+  if vr.hands[1].active then flags = flags + 4 end
+  if vr and not headOnly then
     if vr.hands[0].thumbUp then flags = flags + 8 end
     if vr.hands[1].thumbUp then flags = flags + 16 end
     if vr.hands[0].indexPointing then flags = flags + 32 end
@@ -441,20 +473,24 @@ function VRRig.Encoder:encode(out)
   end
 
   -- Encoded rig uses `ac.StructItem.transform()` to store transform compactly. Because of that we can’t write directly to it.
-  if vr then
-    vr.hands[0].transform:mulTo(matTmp, self.car.worldToLocal)
-    matTmp.position:sub(self.refs.shoulderPosL)
-    out.handL = matTmp -- instead, convertation happens on assignment
-    vr.hands[1].transform:mulTo(matTmp, self.car.worldToLocal)
-    matTmp.position:sub(self.refs.shoulderPosR)
-    out.handR = matTmp
+  if vr and not headOnly then
+    if vr.hands[0].active then
+      vr.hands[0].transform:mulTo(matTmp, self.car.worldToLocal)
+      matTmp.position:sub(self.refs.shoulderPosL)
+      out.handL = matTmp -- instead, convertation happens on assignment
+    end
+    if vr.hands[1].active then
+      vr.hands[1].transform:mulTo(matTmp, self.car.worldToLocal)
+      matTmp.position:sub(self.refs.shoulderPosR)
+      out.handR = matTmp
+    end
   end
-  self.refs.neckNode:getWorldTransformationRaw():mulTo(matTmp, self.car.worldToLocal)
+  getActualTransform(self.refs.neckNode):mulTo(matTmp, self.car.worldToLocal)
   matTmp.position:sub(self.refs.headPos)
   out.head = matTmp
 
   out.flags = flags
-  if vr then
+  if vr and not headOnly then
     out.handStateL = math.round(vr.hands[0].triggerIndex * 15) * 16 + math.round(vr.hands[0].triggerHand * 15)
     out.handStateR = math.round(vr.hands[1].triggerIndex * 15) * 16 + math.round(vr.hands[1].triggerHand * 15)
   end

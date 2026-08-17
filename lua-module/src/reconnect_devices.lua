@@ -10,7 +10,7 @@ Register('core', function (dt)
     if needsReconnecting then
       ac.log('Reconnecting devices')
       needsReconnecting = false
-      __reconnectInputDevices__()
+      __script.reconnectInputDevices()
     end
   else
     needsReconnecting = true
