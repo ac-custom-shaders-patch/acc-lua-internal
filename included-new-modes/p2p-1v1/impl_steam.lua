@@ -62,6 +62,7 @@ local function ensureCarsFilterIsSet()
   ensureCarsFilterIsSet = function() end
   utils.getCarsFilterToken(function(err, token)
     if token then
+      print('Cars list token: %s' % token)
       inviteBase = inviteBase .. ('&cars=%s' % string.urlEncode('*' .. token))
       if curLobbyHandle then
         steam.matchmaking.setLobbyData(curLobbyHandle, 'cm.invite.race', inviteBase)
@@ -339,7 +340,7 @@ refreshUI = function()
         end
       end
       if ui.itemHovered() then
-        ui.setTooltip('Send an invite via Steam to one of your Steam friends.\n\nFor it to work, the recipient has to either:\n• Configure “Full integration” for Steam in Content Manager.\n• Enable regular Steam integration in Content Manager, and have Content Manager running.\n• Or, have a race launched with the same mode and on the same track.')
+        ui.setTooltip('Send an invite via Steam to one of your Steam friends.\n\nFor it to work, the recipient has to either:\n• Configure “Full integration” for Steam in Content Manager.\n• Or, enable regular Steam integration in Content Manager, and have Content Manager running.\n• Or, have a race launched with the same mode and on the same track.')
       end
 
       ui.endGroup()
@@ -376,7 +377,8 @@ refreshUI = function()
 
       ui.setCursorY(120 - 32)
       ui.setNextItemIcon(ui.Icons.Constellation)
-      if ui.button((targetSteamID and gns.ready()) and 'Become a host' or 'Try again', vec2(-0.1, 0)) then
+      if ui.button((targetSteamID and gns.ready()) and 'Become a host' or 'Try again', vec2(-0.1, 0),
+          (gns.ready() or gns.failed()) and 0 or ui.ButtonFlags.Disabled) then
         print('Try again', {['gns.ready()'] = gns.ready(), targetSteamID = targetSteamID, connectStatus = connectStatus})
         if not gns.ready() then
           gns.tryAgain()

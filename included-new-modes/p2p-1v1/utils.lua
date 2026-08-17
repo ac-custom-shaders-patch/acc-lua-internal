@@ -463,7 +463,7 @@ function utils.getCarsFilterToken(callback)
       carIDs:uint32(ac.checksumCRC32(fileName))
     end
   end)
-  parcel.store(carIDs:stringify(), callback)  
+  parcel.store(carIDs:stringify(), callback)
 end
 
 function utils.setLicensePlate(carIndex, driverName, nationCode)
@@ -501,7 +501,7 @@ function utils.isTrackInstalled(trackID)
   local r = trackInstalledCache[trackID]
   if r == nil then
     local pieces = string.split(trackID, '/', 2, false, false)
-    r = io.fileExists('%s/%s/%s.kn5' % { ac.getFolder(ac.FolderID.ContentTracks), pieces[1], pieces[1] })
+    r = io.dirExists('%s/%s/ui' % { ac.getFolder(ac.FolderID.ContentTracks), pieces[1] })
     if r and #pieces == 2 then
       r = io.fileExists('%s/%s/models_%s.ini' % { ac.getFolder(ac.FolderID.ContentTracks), pieces[1], pieces[2] })
     end
